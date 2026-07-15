@@ -1,8 +1,4 @@
-const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
-
-chromium.setHeadlessMode = true;
-chromium.setGraphicsMode = false;
+const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,42 +12,23 @@ module.exports = async (req, res) => {
   const { url } = req.body;
 
   try {
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless
+    const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + Buffer.from('api:sk_396fd924e5e9addeab2144626e4f3c345e92ab13').toString('base64'),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        source: url,
+        use_print: false,
+        wait_for: '#print-only',
+        viewport: { width: 1280, height: 800 },
+        margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
+        format: 'A4'
+      })
     });
 
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
-
-    await page.evaluate(() => {
-      var el = document.getElementById('print-only');
-      if (el) {
-        el.style.display = 'block';
-        el.style.visibility = 'visible';
-        el.style.opacity = '1';
-        el.style.height = 'auto';
-        el.style.overflow = 'visible';
-        var allElements = document.body.children;
-        for (var i = 0; i < allElements.length; i++) {
-          if (allElements[i].id !== 'print-only') {
-            allElements[i].style.display = 'none';
-          }
-        }
-      }
-    });
-
-    await new Promise(r => setTimeout(r, 2000));
-
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
-    });
-
-    await browser.close();
+    const pdf = await response.buffer();
 
     res.setHeader('Content-Type', 'application/pdf');
     res.send(pdf);
