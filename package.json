@@ -2,7 +2,6 @@
   "name": "pdf-generator",
   "version": "1.0.0",
   "dependencies": {
-    "puppeteer-core": "^21.6.1",
-    "@sparticuz/chromium": "^121.0.0"
+    "node-fetch": "2.6.9"
   }
 }
