@@ -22,7 +22,19 @@ module.exports = async (req, res) => {
         source: url,
         format: 'A4',
         margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-        css: '* { visibility: hidden !important; } #print-only, #print-only * { visibility: visible !important; } #print-only { display: block !important; height: auto !important; overflow: visible !important; position: absolute !important; top: 0 !important; left: 0 !important; }'
+        javascript: `
+          var el = document.getElementById('print-only');
+          if (el) {
+            document.body.innerHTML = '';
+            document.body.appendChild(el);
+            el.style.display = 'block';
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+            el.style.height = 'auto';
+            el.style.overflow = 'visible';
+            el.style.position = 'relative';
+          }
+        `
       })
     });
 
