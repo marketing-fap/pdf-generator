@@ -22,6 +22,7 @@ module.exports = async (req, res) => {
         source: url,
         format: 'A4',
         margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
+        lazy_load_images: true,
         javascript: `
           var el = document.getElementById('print-only');
           if (el) {
@@ -33,6 +34,16 @@ module.exports = async (req, res) => {
             el.style.height = 'auto';
             el.style.overflow = 'visible';
             el.style.position = 'relative';
+            
+            var images = el.querySelectorAll('img');
+            images.forEach(function(img) {
+              if (img.dataset.src) {
+                img.src = img.dataset.src;
+              }
+              img.style.display = 'block';
+              img.style.visibility = 'visible';
+              img.style.opacity = '1';
+            });
           }
         `
       })
