@@ -2,7 +2,7 @@
   "name": "pdf-generator",
   "version": "1.0.0",
   "dependencies": {
-    "puppeteer-core": "19.11.1",
-    "@sparticuz/chromium": "110.0.0"
+    "@playwright/test": "1.40.0",
+    "playwright-chromium": "1.40.0"
   }
 }
