@@ -1,4 +1,8 @@
-const { chromium } = require('playwright-chromium');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
+
+chromium.setHeadlessMode = true;
+chromium.setGraphicsMode = false;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,11 +16,15 @@ module.exports = async (req, res) => {
   const { url } = req.body;
 
   try {
-    const browser = await chromium.launch();
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless
+    });
+
     const page = await browser.newPage();
-    
-    await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.setViewport({ width: 1280, height: 800 });
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
 
     await page.evaluate(() => {
       var el = document.getElementById('print-only');
@@ -35,7 +43,7 @@ module.exports = async (req, res) => {
       }
     });
 
-    await page.waitForTimeout(2000);
+    await new Promise(r => setTimeout(r, 2000));
 
     const pdf = await page.pdf({
       format: 'A4',
