@@ -21,8 +21,7 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         source: url,
         format: 'A4',
-        margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-        print_background: true
+        margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
       })
     });
 
@@ -38,6 +37,4 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error.message });
-  }
-};
+    res.status(500).json({ error:
