@@ -23,29 +23,48 @@ module.exports = async (req, res) => {
         format: 'A4',
         margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
         lazy_load_images: true,
+        css: `
+          #print-only {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          #print-only img {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+        `,
         javascript: `
           var el = document.getElementById('print-only');
           if (el) {
-            document.body.innerHTML = '';
-            document.body.appendChild(el);
             el.style.display = 'block';
             el.style.visibility = 'visible';
             el.style.opacity = '1';
             el.style.height = 'auto';
             el.style.overflow = 'visible';
-            el.style.position = 'relative';
-            
+
             var images = el.querySelectorAll('img');
+            var loaded = 0;
             images.forEach(function(img) {
-              if (img.dataset.src) {
-                img.src = img.dataset.src;
-              }
+              if (img.dataset.src) img.src = img.dataset.src;
+              if (img.dataset.lazySrc) img.src = img.dataset.lazySrc;
               img.style.display = 'block';
               img.style.visibility = 'visible';
               img.style.opacity = '1';
             });
+
+            document.body.innerHTML = '';
+            document.body.appendChild(el);
           }
-        `
+
+          window.pdfReady = function() {
+            return document.querySelectorAll('img[src]').length > 0;
+          };
+        `,
+        wait_for: 'pdfReady'
       })
     });
 
