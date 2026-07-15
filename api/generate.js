@@ -15,14 +15,14 @@ module.exports = async (req, res) => {
     const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
       headers: {
-        'Authorization': 'Basic ' + Buffer.from('api:sk_396fd924e5e9addeab2144626e4f3c345e92ab13').toString('base64'),
+        'X-API-Key': 'sk_396fd924e5e9addeab2144626e4f3c345e92ab13',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         source: url,
         format: 'A4',
         margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-        element: '#print-only'
+        css: '* { visibility: hidden !important; } #print-only, #print-only * { visibility: visible !important; } #print-only { display: block !important; height: auto !important; overflow: visible !important; position: absolute !important; top: 0 !important; left: 0 !important; }'
       })
     });
 
