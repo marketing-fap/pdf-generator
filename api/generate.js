@@ -20,18 +20,21 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         source: url,
-        use_print: false,
-        wait_for: '#print-only',
-        viewport: { width: 1280, height: 800 },
+        format: 'A4',
         margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-        format: 'A4'
+        print_background: true
       })
     });
 
-    const pdf = await response.buffer();
+    if (!response.ok) {
+      const error = await response.text();
+      return res.status(500).json({ error });
+    }
 
+    const buffer = await response.buffer();
     res.setHeader('Content-Type', 'application/pdf');
-    res.send(pdf);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
 
   } catch (error) {
     console.error(error);
