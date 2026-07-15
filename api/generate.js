@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
         source: url,
         format: 'A4',
         margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-        css: 'body > *:not(#print-only) { display: none !important; } #print-only { display: block !important; visibility: visible !important; opacity: 1 !important; height: auto !important; overflow: visible !important; }'
+        element: '#print-only'
       })
     });
 
