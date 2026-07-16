@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
         source: url,
         format: 'A4',
         margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' },
-        lazy_load_images: true,
+        lazy_load_images: false,
         css: `
           #print-only {
             display: block !important;
