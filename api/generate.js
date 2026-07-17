@@ -186,7 +186,7 @@ module.exports = async (req, res) => {
             }
 
             #print-only img {
-              max-width: 100% !important;
+              max-width: 70% !important;
               height: auto !important;
             }
           `,
