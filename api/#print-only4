@@ -172,23 +172,39 @@ module.exports = async (req, res) => {
           lazy_load_images: true,
           wait_for_network: true,
           ignore_long_polling: true,
-          css: `
-            html, body {
-              background: #fff !important;
-            }
+     css: `
+  html, body {
+    background: #fff !important;
+  }
 
-            #print-only {
-              display: block !important;
-              visibility: visible !important;
-              opacity: 1 !important;
-              height: auto !important;
-              overflow: visible !important;
-            }
+  #print-only {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
 
-            #print-only img {
-              max-width: 70% !important;
-              height: auto !important;
-            }
+  #print-only img {
+    max-width: 70% !important;
+    height: auto !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  #print-only figure {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  #print-only h1,
+  #print-only h2,
+  #print-only h3,
+  #print-only h4 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+`,
           `,
           javascript: `
             (function () {
