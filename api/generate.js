@@ -189,6 +189,10 @@ module.exports = async (req, res) => {
   max-width: 100% !important;
   height: auto !important;
 }
+#print-only .pdf-group-wrapper {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
 
 /* Evita que headings fiquem isolados do conteúdo seguinte */
 #print-only h1,
@@ -335,6 +339,40 @@ module.exports = async (req, res) => {
  * h1 -> img (imagem noutra página)
  * h1 -> h5 -> p (títulos separados do parágrafo)
  */
+/*
+ * Mantém títulos de grupos (.section-main-header-wrapper)
+ * juntamente com o conteúdo e headings seguintes.
+ */
+var groupTitles = root.querySelectorAll('.section-main-header-wrapper');
+
+Array.prototype.forEach.call(groupTitles, function (titleWrapper) {
+  var parent = titleWrapper.parentElement;
+
+  if (!parent) return;
+
+  var nextSibling = titleWrapper.nextElementSibling;
+
+  if (!nextSibling) return;
+
+  /*
+   * O conteúdo pode estar dentro de vários wrappers.
+   * Criamos um agrupador temporário apenas para controlo
+   * da paginação no PDF.
+   */
+  var groupWrapper = document.createElement('div');
+  groupWrapper.className = 'pdf-group-wrapper';
+
+  parent.insertBefore(groupWrapper, titleWrapper);
+
+  groupWrapper.appendChild(titleWrapper);
+  groupWrapper.appendChild(nextSibling);
+});
+
+
+/*
+ * Mantém headings agrupados com o primeiro elemento
+ * de conteúdo seguinte.
+ */
 var headings = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
 
 Array.prototype.forEach.call(headings, function (heading) {
@@ -367,6 +405,7 @@ Array.prototype.forEach.call(headings, function (heading) {
     wrapper.appendChild(content);
   }
 });
+
 
 isolateElement(root);
 
