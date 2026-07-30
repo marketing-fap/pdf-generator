@@ -177,24 +177,15 @@ module.exports = async (req, res) => {
               background: #fff !important;
             }
 
-            #print-only {
-              display: block !important;
-              visibility: visible !important;
-              opacity: 1 !important;
-              height: auto !important;
-              overflow: visible !important;
-            }
-
             #print-only img {
   max-width: 100% !important;
   height: auto !important;
 }
-#print-only .pdf-group-wrapper {
-  break-inside: avoid !important;
-  page-break-inside: avoid !important;
-}
 
-/* Evita que headings fiquem isolados do conteúdo seguinte */
+
+/*
+ * Evita headings isolados do conteúdo seguinte
+ */
 #print-only h1,
 #print-only h2,
 #print-only h3,
@@ -205,245 +196,431 @@ module.exports = async (req, res) => {
   page-break-after: avoid !important;
 }
 
-#print-only .pdf-keep-heading-content {
-  break-inside: avoid !important;
-  page-break-inside: avoid !important;
+
+/*
+ * Mantém apenas o título do grupo junto
+ * do primeiro elemento seguinte.
+ * Não bloqueia o resto do conteúdo.
+ */
+#print-only .pdf-group-title-keep {
+  break-after: avoid !important;
+  page-break-after: avoid !important;
+}
+
+
+/*
+ * Mantém headings consecutivos como uma sequência
+ */
+#print-only .pdf-heading-group {
+  break-after: avoid !important;
+  page-break-after: avoid !important;
 }
           `,
           javascript: `
-            (function () {
-              window.__pdfReady = false;
-              window.pdfReady = function () {
-                return window.__pdfReady === true;
-              };
+(function () {
+  window.__pdfReady = false;
 
-              function delay(ms) {
-                return new Promise(function (resolve) {
-                  setTimeout(resolve, ms);
-                });
-              }
-
-              function isolateElement(root) {
-                var node = root;
-
-                while (node && node !== document.body) {
-                  if (window.getComputedStyle(node).display === 'none') {
-                    node.style.setProperty('display', 'block', 'important');
-                  }
-
-                  node.style.setProperty('visibility', 'visible', 'important');
-                  node.style.setProperty('opacity', '1', 'important');
-                  node.style.setProperty('overflow', 'visible', 'important');
-
-                  var parent = node.parentElement;
-                  if (!parent) break;
-
-                  Array.prototype.forEach.call(parent.children, function (sibling) {
-                    if (sibling !== node) {
-                      sibling.style.setProperty('display', 'none', 'important');
-                    }
-                  });
-
-                  node = parent;
-                }
-              }
-
-              function hydrateImage(img) {
-                img.loading = 'eager';
-
-                if (!img.getAttribute('src') && img.dataset.src) {
-                  img.src = img.dataset.src;
-                }
-
-                if (!img.getAttribute('src') && img.dataset.lazySrc) {
-                  img.src = img.dataset.lazySrc;
-                }
-
-                if (!img.getAttribute('srcset') && img.dataset.srcset) {
-                  img.srcset = img.dataset.srcset;
-                }
-
-                if (!img.getAttribute('srcset') && img.dataset.lazySrcset) {
-                  img.srcset = img.dataset.lazySrcset;
-                }
-              }
-
-              function waitForImage(img) {
-                hydrateImage(img);
-
-                var src = (img.getAttribute('src') || '').trim();
-                var srcset = (img.getAttribute('srcset') || '').trim();
-
-                if (!src && !srcset) {
-                  img.remove();
-                  return Promise.resolve();
-                }
-
-                return new Promise(function (resolve) {
-                  var finished = false;
-
-                  function finish(success) {
-                    if (finished) return;
-                    finished = true;
-                    clearTimeout(timer);
-
-                    if (!success) {
-                      console.error(
-                        'Imagem removida por falha de carregamento:',
-                        img.currentSrc || img.src
-                      );
-                      img.remove();
-                    }
-
-                    resolve();
-                  }
-
-                  var timer = setTimeout(function () {
-                    finish(img.complete && img.naturalWidth > 0);
-                  }, 15000);
-
-                  if (img.complete) {
-                    finish(img.naturalWidth > 0);
-                    return;
-                  }
-
-                  img.addEventListener(
-                    'load',
-                    function () { finish(img.naturalWidth > 0); },
-                    { once: true }
-                  );
-
-                  img.addEventListener(
-                    'error',
-                    function () { finish(false); },
-                    { once: true }
-                  );
-                });
-              }
-
-              async function preparePdf() {
-                var root = document.getElementById('print-only');
-                if (!root) {
-                  throw new Error('Elemento #print-only não encontrado.');
-                }
-
-                root.style.setProperty('display', 'block', 'important');
-                root.style.setProperty('visibility', 'visible', 'important');
-                root.style.setProperty('opacity', '1', 'important');
-                root.style.setProperty('height', 'auto', 'important');
-                root.style.setProperty('overflow', 'visible', 'important');
-
-/*
- * Mantém headings agrupados com o primeiro elemento de conteúdo seguinte.
- * Evita:
- * h1 -> img (imagem noutra página)
- * h1 -> h5 -> p (títulos separados do parágrafo)
- */
-/*
- * Mantém títulos de grupos (.section-main-header-wrapper)
- * juntamente com o conteúdo e headings seguintes.
- */
-var groupTitles = root.querySelectorAll('.section-main-header-wrapper');
-
-Array.prototype.forEach.call(groupTitles, function (titleWrapper) {
-  var parent = titleWrapper.parentElement;
-
-  if (!parent) return;
-
-  var nextSibling = titleWrapper.nextElementSibling;
-
-  if (!nextSibling) return;
-
-  /*
-   * O conteúdo pode estar dentro de vários wrappers.
-   * Criamos um agrupador temporário apenas para controlo
-   * da paginação no PDF.
-   */
-  var groupWrapper = document.createElement('div');
-  groupWrapper.className = 'pdf-group-wrapper';
-
-  parent.insertBefore(groupWrapper, titleWrapper);
-
-  groupWrapper.appendChild(titleWrapper);
-  groupWrapper.appendChild(nextSibling);
-});
+  window.pdfReady = function () {
+    return window.__pdfReady === true;
+  };
 
 
-/*
- * Mantém headings agrupados com o primeiro elemento
- * de conteúdo seguinte.
- */
-var headings = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  function delay(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
 
-Array.prototype.forEach.call(headings, function (heading) {
-  var next = heading.nextElementSibling;
 
-  if (!next) return;
+  function isolateElement(root) {
+    var node = root;
 
-  var wrapper = document.createElement('div');
-  wrapper.className = 'pdf-keep-heading-content';
+    while (node && node !== document.body) {
 
-  heading.parentNode.insertBefore(wrapper, heading);
+      if (window.getComputedStyle(node).display === 'none') {
+        node.style.setProperty('display', 'block', 'important');
+      }
 
-  var current = heading;
+      node.style.setProperty('visibility', 'visible', 'important');
+      node.style.setProperty('opacity', '1', 'important');
+      node.style.setProperty('overflow', 'visible', 'important');
 
-  while (current) {
-    var nextElement = current.nextElementSibling;
 
-    wrapper.appendChild(current);
+      var parent = node.parentElement;
 
-    if (!nextElement || !/^H[1-6]$/i.test(nextElement.tagName)) {
-      break;
+      if (!parent) break;
+
+
+      Array.prototype.forEach.call(parent.children, function (sibling) {
+
+        if (sibling !== node) {
+          sibling.style.setProperty('display', 'none', 'important');
+        }
+
+      });
+
+
+      node = parent;
+    }
+  }
+
+
+  function hydrateImage(img) {
+
+    img.loading = 'eager';
+
+
+    if (!img.getAttribute('src') && img.dataset.src) {
+      img.src = img.dataset.src;
     }
 
-    current = nextElement;
+
+    if (!img.getAttribute('src') && img.dataset.lazySrc) {
+      img.src = img.dataset.lazySrc;
+    }
+
+
+    if (!img.getAttribute('srcset') && img.dataset.srcset) {
+      img.srcset = img.dataset.srcset;
+    }
+
+
+    if (!img.getAttribute('srcset') && img.dataset.lazySrcset) {
+      img.srcset = img.dataset.lazySrcset;
+    }
+
   }
 
-  var content = wrapper.nextElementSibling;
 
-  if (content && !/^H[1-6]$/i.test(content.tagName)) {
-    wrapper.appendChild(content);
+  function waitForImage(img) {
+
+    hydrateImage(img);
+
+
+    var src = (img.getAttribute('src') || '').trim();
+    var srcset = (img.getAttribute('srcset') || '').trim();
+
+
+    if (!src && !srcset) {
+      img.remove();
+      return Promise.resolve();
+    }
+
+
+    return new Promise(function (resolve) {
+
+      var finished = false;
+
+
+      function finish(success) {
+
+        if (finished) return;
+
+        finished = true;
+
+        clearTimeout(timer);
+
+
+        if (!success) {
+          console.error(
+            'Imagem removida por falha de carregamento:',
+            img.currentSrc || img.src
+          );
+
+          img.remove();
+        }
+
+
+        resolve();
+      }
+
+
+      var timer = setTimeout(function () {
+
+        finish(img.complete && img.naturalWidth > 0);
+
+      }, 15000);
+
+
+
+      if (img.complete) {
+
+        finish(img.naturalWidth > 0);
+
+        return;
+      }
+
+
+      img.addEventListener(
+        'load',
+        function () {
+          finish(img.naturalWidth > 0);
+        },
+        { once: true }
+      );
+
+
+      img.addEventListener(
+        'error',
+        function () {
+          finish(false);
+        },
+        { once: true }
+      );
+
+    });
+
   }
-});
 
 
-isolateElement(root);
+  /*
+   * Tratamento das quebras de página.
+   *
+   * Apenas evita títulos isolados.
+   * Não cria blocos indivisíveis.
+   */
+  function preparePagination(root) {
 
-                Array.prototype.forEach.call(
-                  root.querySelectorAll('source[data-srcset]'),
-                  function (source) {
-                    source.srcset = source.dataset.srcset;
-                  }
-                );
 
-                window.scrollTo(0, document.body.scrollHeight);
-                await delay(100);
+    /*
+     * Títulos de grupos:
+     * .section-main-header-wrapper
+     *
+     * Apenas recebe uma classe para
+     * impedir quebra logo depois.
+     */
+    var groupTitles = root.querySelectorAll(
+      '.section-main-header-wrapper'
+    );
 
-                var images = Array.prototype.slice.call(
-                  root.querySelectorAll('img')
-                );
 
-                await Promise.all(images.map(waitForImage));
+    Array.prototype.forEach.call(
+      groupTitles,
+      function (titleWrapper) {
 
-                if (document.fonts && document.fonts.ready) {
-                  await Promise.race([document.fonts.ready, delay(5000)]);
-                }
+        titleWrapper.classList.add(
+          'pdf-group-title-keep'
+        );
 
-                await new Promise(function (resolve) {
-                  requestAnimationFrame(function () {
-                    requestAnimationFrame(resolve);
-                  });
-                });
+      }
+    );
 
-                window.scrollTo(0, 0);
-                window.__pdfReady = true;
-              }
 
-              preparePdf().catch(function (error) {
-                console.error(error);
-              });
-            })();
-          `,
+
+    /*
+     * Mantém headings consecutivos juntos.
+     *
+     * Ex:
+     * h2
+     * h3
+     * h4
+     *
+     * Mas permite que o conteúdo seguinte
+     * continue noutra página.
+     */
+    var headings = root.querySelectorAll(
+      'h1, h2, h3, h4, h5, h6'
+    );
+
+
+    Array.prototype.forEach.call(
+      headings,
+      function (heading) {
+
+
+        if (heading.parentElement.classList.contains(
+          'pdf-heading-group'
+        )) {
+          return;
+        }
+
+
+        var next = heading.nextElementSibling;
+
+
+        if (!next) return;
+
+
+        if (/^H[1-6]$/i.test(next.tagName)) {
+
+
+          var wrapper = document.createElement('div');
+
+          wrapper.className = 'pdf-heading-group';
+
+
+          heading.parentNode.insertBefore(
+            wrapper,
+            heading
+          );
+
+
+          var current = heading;
+
+
+          while (current) {
+
+            var nextElement =
+              current.nextElementSibling;
+
+
+            wrapper.appendChild(current);
+
+
+            if (
+              !nextElement ||
+              !/^H[1-6]$/i.test(nextElement.tagName)
+            ) {
+              break;
+            }
+
+
+            current = nextElement;
+
+          }
+
+        }
+
+      }
+    );
+
+  }
+
+
+
+  async function preparePdf() {
+
+    var root = document.getElementById(
+      'print-only'
+    );
+
+
+    if (!root) {
+      throw new Error(
+        'Elemento #print-only não encontrado.'
+      );
+    }
+
+
+    root.style.setProperty(
+      'display',
+      'block',
+      'important'
+    );
+
+    root.style.setProperty(
+      'visibility',
+      'visible',
+      'important'
+    );
+
+    root.style.setProperty(
+      'opacity',
+      '1',
+      'important'
+    );
+
+    root.style.setProperty(
+      'height',
+      'auto',
+      'important'
+    );
+
+    root.style.setProperty(
+      'overflow',
+      'visible',
+      'important'
+    );
+
+
+
+    isolateElement(root);
+
+
+
+    preparePagination(root);
+
+
+
+    Array.prototype.forEach.call(
+      root.querySelectorAll(
+        'source[data-srcset]'
+      ),
+      function (source) {
+
+        source.srcset =
+          source.dataset.srcset;
+
+      }
+    );
+
+
+
+    window.scrollTo(
+      0,
+      document.body.scrollHeight
+    );
+
+
+    await delay(100);
+
+
+
+    var images = Array.prototype.slice.call(
+      root.querySelectorAll('img')
+    );
+
+
+    await Promise.all(
+      images.map(waitForImage)
+    );
+
+
+
+    if (
+      document.fonts &&
+      document.fonts.ready
+    ) {
+
+      await Promise.race([
+        document.fonts.ready,
+        delay(5000)
+      ]);
+
+    }
+
+
+
+    await new Promise(function (resolve) {
+
+      requestAnimationFrame(function () {
+
+        requestAnimationFrame(resolve);
+
+      });
+
+    });
+
+
+
+    window.scrollTo(0, 0);
+
+
+    window.__pdfReady = true;
+
+  }
+
+
+
+  preparePdf().catch(function (error) {
+
+    console.error(error);
+
+  });
+
+
+})();
+`,
           wait_for: 'pdfReady'
         })
       }
