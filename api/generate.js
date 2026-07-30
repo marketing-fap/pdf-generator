@@ -186,9 +186,25 @@ module.exports = async (req, res) => {
             }
 
             #print-only img {
-              max-width: 100% !important;
-              height: auto !important;
-            }
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Evita que headings fiquem isolados do conteúdo seguinte */
+#print-only h1,
+#print-only h2,
+#print-only h3,
+#print-only h4,
+#print-only h5,
+#print-only h6 {
+  break-after: avoid !important;
+  page-break-after: avoid !important;
+}
+
+#print-only .pdf-keep-heading-content {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
           `,
           javascript: `
             (function () {
@@ -313,7 +329,46 @@ module.exports = async (req, res) => {
                 root.style.setProperty('height', 'auto', 'important');
                 root.style.setProperty('overflow', 'visible', 'important');
 
-                isolateElement(root);
+/*
+ * Mantém headings agrupados com o primeiro elemento de conteúdo seguinte.
+ * Evita:
+ * h1 -> img (imagem noutra página)
+ * h1 -> h5 -> p (títulos separados do parágrafo)
+ */
+var headings = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+Array.prototype.forEach.call(headings, function (heading) {
+  var next = heading.nextElementSibling;
+
+  if (!next) return;
+
+  var wrapper = document.createElement('div');
+  wrapper.className = 'pdf-keep-heading-content';
+
+  heading.parentNode.insertBefore(wrapper, heading);
+
+  var current = heading;
+
+  while (current) {
+    var nextElement = current.nextElementSibling;
+
+    wrapper.appendChild(current);
+
+    if (!nextElement || !/^H[1-6]$/i.test(nextElement.tagName)) {
+      break;
+    }
+
+    current = nextElement;
+  }
+
+  var content = wrapper.nextElementSibling;
+
+  if (content && !/^H[1-6]$/i.test(content.tagName)) {
+    wrapper.appendChild(content);
+  }
+});
+
+isolateElement(root);
 
                 Array.prototype.forEach.call(
                   root.querySelectorAll('source[data-srcset]'),
