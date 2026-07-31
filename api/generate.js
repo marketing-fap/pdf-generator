@@ -129,6 +129,7 @@ module.exports = async (req, res) => {
     if (origin && !ALLOWED_ORIGINS.has(origin)) {
       return res.status(403).end();
     }
+
     return res.status(204).end();
   }
 
@@ -142,6 +143,7 @@ module.exports = async (req, res) => {
   }
 
   const apiKey = process.env.PDFSHIFT_API_KEY;
+
   if (!apiKey) {
     return sendError(req, res, 500, 'O serviço de PDF não está configurado.');
   }
@@ -190,16 +192,33 @@ module.exports = async (req, res) => {
               height: auto !important;
             }
 
-            #print-only .w-richtext h1,
-            #print-only .w-richtext h2,
-            #print-only .w-richtext h3,
-            #print-only .w-richtext h4,
-            #print-only .w-richtext h5,
-            #print-only .w-richtext h6 {
+            #print-only h1,
+            #print-only h2,
+            #print-only h3,
+            #print-only h4,
+            #print-only h5,
+            #print-only h6 {
               page-break-inside: avoid !important;
               break-inside: avoid-page !important;
               page-break-after: avoid !important;
               break-after: avoid-page !important;
+            }
+
+            #print-only .section-header-wrapper {
+              page-break-inside: avoid !important;
+              break-inside: avoid-page !important;
+              page-break-after: avoid !important;
+              break-after: avoid-page !important;
+            }
+
+            #print-only .section-header-wrapper + .conteudo-geral-wrapper {
+              page-break-before: avoid !important;
+              break-before: avoid-page !important;
+            }
+
+            #print-only .section-main-header-wrapper + * {
+              page-break-before: avoid !important;
+              break-before: avoid-page !important;
             }
 
             #print-only .pdf-heading-following-content {
@@ -233,6 +252,7 @@ module.exports = async (req, res) => {
           javascript: `
             (function () {
               window.__pdfReady = false;
+
               window.pdfReady = function () {
                 return window.__pdfReady === true;
               };
@@ -251,18 +271,30 @@ module.exports = async (req, res) => {
                     node.style.setProperty('display', 'block', 'important');
                   }
 
-                  node.style.setProperty('visibility', 'visible', 'important');
+                  node.style.setProperty(
+                    'visibility',
+                    'visible',
+                    'important'
+                  );
                   node.style.setProperty('opacity', '1', 'important');
                   node.style.setProperty('overflow', 'visible', 'important');
 
                   var parent = node.parentElement;
+
                   if (!parent) break;
 
-                  Array.prototype.forEach.call(parent.children, function (sibling) {
-                    if (sibling !== node) {
-                      sibling.style.setProperty('display', 'none', 'important');
+                  Array.prototype.forEach.call(
+                    parent.children,
+                    function (sibling) {
+                      if (sibling !== node) {
+                        sibling.style.setProperty(
+                          'display',
+                          'none',
+                          'important'
+                        );
+                      }
                     }
-                  });
+                  );
 
                   node = parent;
                 }
@@ -283,37 +315,62 @@ module.exports = async (req, res) => {
                   img.srcset = img.dataset.srcset;
                 }
 
-                if (!img.getAttribute('srcset') && img.dataset.lazySrcset) {
+                if (
+                  !img.getAttribute('srcset') &&
+                  img.dataset.lazySrcset
+                ) {
                   img.srcset = img.dataset.lazySrcset;
                 }
               }
 
               function isHeading(element) {
-                return !!element && /^H[1-6]$/.test(element.tagName);
+                return (
+                  !!element &&
+                  /^H[1-6]$/.test(element.tagName)
+                );
               }
 
               function isEmptyPrintElement(element) {
                 if (!element) return true;
 
-                if (element.matches('img, picture, figure, video, iframe, svg, table, ul, ol, blockquote')) {
+                if (
+                  element.matches(
+                    'img, picture, figure, video, iframe, svg, table, ul, ol, blockquote'
+                  )
+                ) {
                   return false;
                 }
 
-                if (element.querySelector('img, picture, figure, video, iframe, svg, table, ul, ol, blockquote')) {
+                if (
+                  element.querySelector(
+                    'img, picture, figure, video, iframe, svg, table, ul, ol, blockquote'
+                  )
+                ) {
                   return false;
                 }
 
-                return element.textContent
-                  .replace(/[\\s\\u200B\\u200C\\u200D\\uFEFF]/g, '') === '';
+                return (
+                  element.textContent
+                    .replace(
+                      /[\\s\\u200B\\u200C\\u200D\\uFEFF]/g,
+                      ''
+                    ) === ''
+                );
               }
 
               function protectRichTextHeadingGroups(root) {
                 Array.prototype.forEach.call(
                   root.querySelectorAll('.w-richtext'),
                   function (richText) {
-                    var children = Array.prototype.slice.call(richText.children);
+                    var children = Array.prototype.slice.call(
+                      richText.children
+                    );
 
-                    for (var index = 0; index < children.length; index += 1) {
+                    for (
+                      var index = 0;
+                      index < children.length;
+                      index += 1
+                    ) {
                       if (!isHeading(children[index])) continue;
 
                       var cursor = index;
@@ -327,12 +384,16 @@ module.exports = async (req, res) => {
                         }
 
                         if (isEmptyPrintElement(next)) {
-                          next.classList.add('pdf-heading-chain-spacer');
+                          next.classList.add(
+                            'pdf-heading-chain-spacer'
+                          );
                           cursor += 1;
                           continue;
                         }
 
-                        next.classList.add('pdf-heading-following-content');
+                        next.classList.add(
+                          'pdf-heading-following-content'
+                        );
                         break;
                       }
 
@@ -343,13 +404,21 @@ module.exports = async (req, res) => {
               }
 
               function findLeadingHeading(container) {
-                var children = Array.prototype.slice.call(container.children);
+                var children = Array.prototype.slice.call(
+                  container.children
+                );
 
-                for (var index = 0; index < children.length; index += 1) {
+                for (
+                  var index = 0;
+                  index < children.length;
+                  index += 1
+                ) {
                   var child = children[index];
 
                   if (isEmptyPrintElement(child)) {
-                    child.classList.add('pdf-heading-chain-spacer');
+                    child.classList.add(
+                      'pdf-heading-chain-spacer'
+                    );
                     continue;
                   }
 
@@ -365,26 +434,43 @@ module.exports = async (req, res) => {
 
               function protectSectionHeadingGroups(root) {
                 Array.prototype.forEach.call(
-                  root.querySelectorAll('.section-main-header-wrapper'),
+                  root.querySelectorAll(
+                    '.section-main-header-wrapper'
+                  ),
                   function (sectionHeader) {
-                    var contentContainer = sectionHeader.nextElementSibling;
+                    var contentContainer =
+                      sectionHeader.nextElementSibling;
+
                     if (!contentContainer) return;
 
-                    var richText = contentContainer.matches('.w-richtext')
-                      ? contentContainer
-                      : contentContainer.querySelector('.w-richtext');
+                    var richText =
+                      contentContainer.matches('.w-richtext')
+                        ? contentContainer
+                        : contentContainer.querySelector(
+                            '.w-richtext'
+                          );
 
                     if (!richText) return;
 
-                    var firstHeading = findLeadingHeading(richText);
-                    if (!firstHeading || !contentContainer.contains(firstHeading)) return;
+                    var firstHeading =
+                      findLeadingHeading(richText);
+
+                    if (
+                      !firstHeading ||
+                      !contentContainer.contains(firstHeading)
+                    ) {
+                      return;
+                    }
 
                     var node = firstHeading;
 
                     while (node) {
-                      node.classList.add('pdf-section-heading-continuation');
+                      node.classList.add(
+                        'pdf-section-heading-continuation'
+                      );
 
                       if (node === contentContainer) break;
+
                       node = node.parentElement;
                     }
                   }
@@ -394,8 +480,13 @@ module.exports = async (req, res) => {
               function waitForImage(img) {
                 hydrateImage(img);
 
-                var src = (img.getAttribute('src') || '').trim();
-                var srcset = (img.getAttribute('srcset') || '').trim();
+                var src = (
+                  img.getAttribute('src') || ''
+                ).trim();
+
+                var srcset = (
+                  img.getAttribute('srcset') || ''
+                ).trim();
 
                 if (!src && !srcset) {
                   img.remove();
@@ -407,6 +498,7 @@ module.exports = async (req, res) => {
 
                   function finish(success) {
                     if (finished) return;
+
                     finished = true;
                     clearTimeout(timer);
 
@@ -415,6 +507,7 @@ module.exports = async (req, res) => {
                         'Imagem removida por falha de carregamento:',
                         img.currentSrc || img.src
                       );
+
                       img.remove();
                     }
 
@@ -422,7 +515,10 @@ module.exports = async (req, res) => {
                   }
 
                   var timer = setTimeout(function () {
-                    finish(img.complete && img.naturalWidth > 0);
+                    finish(
+                      img.complete &&
+                      img.naturalWidth > 0
+                    );
                   }, 15000);
 
                   if (img.complete) {
@@ -432,50 +528,94 @@ module.exports = async (req, res) => {
 
                   img.addEventListener(
                     'load',
-                    function () { finish(img.naturalWidth > 0); },
+                    function () {
+                      finish(img.naturalWidth > 0);
+                    },
                     { once: true }
                   );
 
                   img.addEventListener(
                     'error',
-                    function () { finish(false); },
+                    function () {
+                      finish(false);
+                    },
                     { once: true }
                   );
                 });
               }
 
               async function preparePdf() {
-                var root = document.getElementById('print-only');
+                var root =
+                  document.getElementById('print-only');
+
                 if (!root) {
-                  throw new Error('Elemento #print-only não encontrado.');
+                  throw new Error(
+                    'Elemento #print-only não encontrado.'
+                  );
                 }
 
-                root.style.setProperty('display', 'block', 'important');
-                root.style.setProperty('visibility', 'visible', 'important');
-                root.style.setProperty('opacity', '1', 'important');
-                root.style.setProperty('height', 'auto', 'important');
-                root.style.setProperty('overflow', 'visible', 'important');
+                root.style.setProperty(
+                  'display',
+                  'block',
+                  'important'
+                );
+                root.style.setProperty(
+                  'visibility',
+                  'visible',
+                  'important'
+                );
+                root.style.setProperty(
+                  'opacity',
+                  '1',
+                  'important'
+                );
+                root.style.setProperty(
+                  'height',
+                  'auto',
+                  'important'
+                );
+                root.style.setProperty(
+                  'overflow',
+                  'visible',
+                  'important'
+                );
 
                 isolateElement(root);
 
                 Array.prototype.forEach.call(
-                  root.querySelectorAll('source[data-srcset]'),
+                  root.querySelectorAll(
+                    'source[data-srcset]'
+                  ),
                   function (source) {
-                    source.srcset = source.dataset.srcset;
+                    source.srcset =
+                      source.dataset.srcset;
                   }
                 );
 
-                window.scrollTo(0, document.body.scrollHeight);
-                await delay(100);
-
-                var images = Array.prototype.slice.call(
-                  root.querySelectorAll('img')
+                window.scrollTo(
+                  0,
+                  document.body.scrollHeight
                 );
 
-                await Promise.all(images.map(waitForImage));
+                await delay(100);
 
-                if (document.fonts && document.fonts.ready) {
-                  await Promise.race([document.fonts.ready, delay(5000)]);
+                var images =
+                  Array.prototype.slice.call(
+                    root.querySelectorAll('img')
+                  );
+
+                await Promise.all(
+                  images.map(waitForImage)
+                );
+
+                if (
+                  document.fonts &&
+                  document.fonts.ready
+                ) {
+                  await Promise.race([
+                    document.fonts.ready,
+                    delay(5000)
+                  ]);
                 }
 
                 protectRichTextHeadingGroups(root);
@@ -503,7 +643,12 @@ module.exports = async (req, res) => {
 
     if (!pdfResponse.ok) {
       const providerError = await pdfResponse.text();
-      console.error('PDFShift:', pdfResponse.status, providerError);
+
+      console.error(
+        'PDFShift:',
+        pdfResponse.status,
+        providerError
+      );
 
       return sendError(
         req,
@@ -513,14 +658,28 @@ module.exports = async (req, res) => {
       );
     }
 
-    const responseType = pdfResponse.headers.get('content-type') || '';
+    const responseType =
+      pdfResponse.headers.get('content-type') || '';
+
     if (!responseType.includes('application/pdf')) {
-      const unexpectedBody = await pdfResponse.text();
-      console.error('Resposta inesperada da PDFShift:', unexpectedBody);
-      return sendError(req, res, 502, 'A resposta recebida não é um PDF.');
+      const unexpectedBody =
+        await pdfResponse.text();
+
+      console.error(
+        'Resposta inesperada da PDFShift:',
+        unexpectedBody
+      );
+
+      return sendError(
+        req,
+        res,
+        502,
+        'A resposta recebida não é um PDF.'
+      );
     }
 
-    const contentLength = pdfResponse.headers.get('content-length');
+    const contentLength =
+      pdfResponse.headers.get('content-length');
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
@@ -530,7 +689,10 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
 
     if (contentLength) {
-      res.setHeader('Content-Length', contentLength);
+      res.setHeader(
+        'Content-Length',
+        contentLength
+      );
     }
 
     await new Promise((resolve, reject) => {
@@ -550,7 +712,9 @@ module.exports = async (req, res) => {
       req,
       res,
       error.statusCode || 500,
-      error.statusCode ? error.message : 'Erro interno ao gerar o PDF.'
+      error.statusCode
+        ? error.message
+        : 'Erro interno ao gerar o PDF.'
     );
   }
 };
