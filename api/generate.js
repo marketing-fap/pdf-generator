@@ -84,6 +84,7 @@ function escapeHtml(value) {
 
 function sendError(req, res, status, message) {
   const contentType = String(req.headers['content-type'] || '').toLowerCase();
+
   const isFormNavigation = contentType.includes(
     'application/x-www-form-urlencoded'
   );
@@ -91,17 +92,29 @@ function sendError(req, res, status, message) {
   if (isFormNavigation) {
     res.statusCode = status;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+
     return res.end(`<!doctype html>
 <html lang="pt">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Erro ao gerar PDF</title>
+
   <style>
-    body { margin: 0; padding: 40px; font: 16px/1.5 Arial, sans-serif; color: #222; }
-    main { max-width: 680px; margin: 0 auto; }
+    body {
+      margin: 0;
+      padding: 40px;
+      font: 16px/1.5 Arial, sans-serif;
+      color: #222;
+    }
+
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+    }
   </style>
 </head>
+
 <body>
   <main>
     <h1>Não foi possível gerar o PDF.</h1>
@@ -111,22 +124,41 @@ function sendError(req, res, status, message) {
 </html>`);
   }
 
-  return res.status(status).json({ error: message });
+  return res.status(status).json({
+    error: message
+  });
 }
 
 module.exports = async (req, res) => {
   const origin = req.headers.origin;
 
   if (origin && ALLOWED_ORIGINS.has(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
+    res.setHeader(
+      'Access-Control-Allow-Origin',
+      origin
+    );
+
+    res.setHeader(
+      'Vary',
+      'Origin'
+    );
   }
 
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'POST, OPTIONS'
+  );
+
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type'
+  );
 
   if (req.method === 'OPTIONS') {
-    if (origin && !ALLOWED_ORIGINS.has(origin)) {
+    if (
+      origin &&
+      !ALLOWED_ORIGINS.has(origin)
+    ) {
       return res.status(403).end();
     }
 
@@ -134,42 +166,75 @@ module.exports = async (req, res) => {
   }
 
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST, OPTIONS');
-    return sendError(req, res, 405, 'Método não permitido.');
+    res.setHeader(
+      'Allow',
+      'POST, OPTIONS'
+    );
+
+    return sendError(
+      req,
+      res,
+      405,
+      'Método não permitido.'
+    );
   }
 
-  if (origin && !ALLOWED_ORIGINS.has(origin)) {
-    return sendError(req, res, 403, 'Origem não permitida.');
+  if (
+    origin &&
+    !ALLOWED_ORIGINS.has(origin)
+  ) {
+    return sendError(
+      req,
+      res,
+      403,
+      'Origem não permitida.'
+    );
   }
 
-  const apiKey = process.env.PDFSHIFT_API_KEY;
+  const apiKey =
+    process.env.PDFSHIFT_API_KEY;
 
   if (!apiKey) {
-    return sendError(req, res, 500, 'O serviço de PDF não está configurado.');
+    return sendError(
+      req,
+      res,
+      500,
+      'O serviço de PDF não está configurado.'
+    );
   }
 
   try {
-    const body = parseBody(req);
-    const source = validateProductUrl(body.url);
-    const filename = safeFilename(body.filename);
+    const body =
+      parseBody(req);
+
+    const source =
+      validateProductUrl(body.url);
+
+    const filename =
+      safeFilename(body.filename);
 
     const pdfResponse = await fetch(
       'https://api.pdfshift.io/v3/convert/pdf',
       {
         method: 'POST',
+
         headers: {
           'X-API-Key': apiKey,
           'Content-Type': 'application/json'
         },
+
         body: JSON.stringify({
           source,
+
           format: 'A4',
+
           margin: {
             top: '10mm',
             bottom: '10mm',
             left: '10mm',
             right: '10mm'
           },
+
           raise_for_status: true,
           lazy_load_images: true,
           wait_for_network: true,
@@ -181,40 +246,55 @@ module.exports = async (req, res) => {
               background: #fff !important;
             }
 
+
+            /*
+             * ÁREA DE IMPRESSÃO
+             *
+             * A4 = 210mm.
+             * Margem esquerda = 10mm.
+             * Margem direita = 10mm.
+             *
+             * Largura útil = 190mm.
+             */
             #print-only {
               display: block !important;
               visibility: visible !important;
               opacity: 1 !important;
+
               height: auto !important;
               overflow: visible !important;
+
               box-sizing: border-box !important;
 
-              /*
-               * A4 = 210mm.
-               * A PDFShift aplica 10mm de margem de cada lado.
-               * A largura útil é, portanto, 190mm.
-               */
               width: 190mm !important;
               max-width: 190mm !important;
+
               margin-left: auto !important;
               margin-right: auto !important;
             }
 
+
             /*
-             * Não aplicamos height:auto globalmente a todas as imagens.
+             * IMPORTANTE
              *
-             * A regra antiga:
+             * Não existe uma regra global:
              *
              * #print-only img {
-             *   max-width: 100% !important;
              *   height: auto !important;
              * }
              *
-             * anulava tamanhos específicos definidos no Webflow, incluindo
-             * as imagens da collection-list-produto-acessorios-pdf.
+             * porque isso iria anular alturas e dimensões
+             * específicas definidas no Webflow.
+             */
+
+
+            /*
+             * FIGURES DENTRO DOS RICH TEXT
              *
-             * O controlo fica limitado às imagens inseridas em figures
-             * dentro dos Rich Text.
+             * Uma figure nunca deve ser cortada a meio.
+             *
+             * Se existir figcaption, fica automaticamente
+             * agrupado com a imagem porque pertence à figure.
              */
             #print-only .w-richtext figure {
               max-width: 100% !important;
@@ -223,8 +303,16 @@ module.exports = async (req, res) => {
               break-inside: avoid-page !important;
             }
 
+
+            /*
+             * Imagens inseridas em figures de Rich Text.
+             *
+             * Estas podem ser redimensionadas pelo JavaScript
+             * caso sejam demasiado altas para uma página A4.
+             */
             #print-only .w-richtext figure img {
               display: block !important;
+
               max-width: 100% !important;
               height: auto !important;
 
@@ -232,8 +320,33 @@ module.exports = async (req, res) => {
               margin-right: auto !important;
             }
 
+
             /*
-             * Todos os headings devem evitar ficar isolados no final
+             * IMAGENS DENTRO DE PICTURE
+             *
+             * Algumas imagens do Webflow recebem o max-width
+             * no elemento <picture>.
+             *
+             * No browser normal isso funciona corretamente,
+             * mas o Chromium pode recalcular o tamanho do IMG
+             * quando entra no modo de impressão.
+             *
+             * O JavaScript mede previamente a largura correta
+             * e adiciona esta classe.
+             */
+            #print-only picture.pdf-picture-size-locked {
+              box-sizing: border-box !important;
+            }
+
+            #print-only picture.pdf-picture-size-locked > img {
+              box-sizing: border-box !important;
+            }
+
+
+            /*
+             * HEADINGS
+             *
+             * Nenhum heading deve ficar isolado no final
              * de uma página.
              */
             #print-only h1,
@@ -249,25 +362,27 @@ module.exports = async (req, res) => {
               break-after: avoid-page !important;
             }
 
+
             /*
-             * Estas classes são adicionadas pelo JavaScript.
-             *
-             * Permitem ligar elementos mesmo quando o heading e o conteúdo
-             * pertencem a DIVs diferentes.
+             * Estas classes são adicionadas dinamicamente
+             * pelo JavaScript para ligar headings e conteúdos
+             * que podem estar em wrappers diferentes.
              */
             #print-only .pdf-keep-after {
               page-break-after: avoid !important;
               break-after: avoid-page !important;
             }
 
+
             #print-only .pdf-keep-before {
               page-break-before: avoid !important;
               break-before: avoid-page !important;
             }
 
+
             /*
-             * Elementos vazios existentes entre um heading e o conteúdo
-             * não devem criar uma oportunidade de quebra.
+             * Elementos vazios existentes entre dois elementos
+             * ligados não devem criar uma oportunidade de quebra.
              */
             #print-only .pdf-keep-bridge {
               page-break-before: avoid !important;
@@ -280,22 +395,27 @@ module.exports = async (req, res) => {
               break-inside: avoid-page !important;
             }
 
+
             /*
-             * Um parágrafo NÃO deve ser tornado indivisível.
+             * PARÁGRAFOS
              *
-             * É perfeitamente aceitável que comece na mesma página do
-             * heading e continue na página seguinte.
+             * O parágrafo deve começar na mesma página
+             * do heading, mas pode continuar para a página seguinte.
              */
             #print-only p.pdf-keep-before {
               orphans: 1 !important;
               widows: 1 !important;
             }
 
+
             /*
-             * Nas listas, o primeiro LI é a unidade mínima que deve caber
-             * juntamente com o heading.
+             * LISTAS
              *
-             * A UL/OL pode continuar normalmente nas páginas seguintes.
+             * O primeiro LI deve caber juntamente
+             * com o heading/subheading.
+             *
+             * A UL ou OL inteira pode continuar
+             * para a página seguinte.
              */
             #print-only .pdf-first-list-item {
               page-break-before: avoid !important;
@@ -305,22 +425,27 @@ module.exports = async (req, res) => {
               break-inside: avoid-page !important;
             }
 
+
             /*
-             * Uma figure é sempre tratada como uma unidade única:
+             * FIGURE ATÓMICA
              *
-             * imagem
-             * +
-             * figcaption
+             * Não permitir quebra dentro de:
              *
-             * Nunca devem ser separados por uma quebra.
+             * figure
+             *   imagem
+             *   legenda
              */
             #print-only .pdf-atomic-figure {
               page-break-inside: avoid !important;
               break-inside: avoid-page !important;
             }
 
+
             /*
-             * Regras adicionais para a estrutura atual do Webflow.
+             * WRAPPERS WEBFLOW
+             *
+             * Proteção adicional para as estruturas
+             * já existentes no site.
              */
             #print-only .section-header-wrapper,
             #print-only .section-main-header-wrapper {
@@ -331,6 +456,7 @@ module.exports = async (req, res) => {
               break-after: avoid-page !important;
             }
 
+
             #print-only .section-header-wrapper + .conteudo-geral-wrapper,
             #print-only .section-main-header-wrapper + * {
               page-break-before: avoid !important;
@@ -338,30 +464,72 @@ module.exports = async (req, res) => {
             }
           `,
 
+
           javascript: `
             (function () {
+
               window.__pdfReady = false;
+
 
               window.pdfReady = function () {
                 return window.__pdfReady === true;
               };
 
-              function delay(ms) {
-                return new Promise(function (resolve) {
-                  setTimeout(resolve, ms);
-                });
-              }
 
               /*
-               * Mostra exclusivamente o #print-only, tal como já acontecia
-               * no código original.
+               * Pequeno delay auxiliar.
+               */
+              function delay(ms) {
+                return new Promise(
+                  function (resolve) {
+                    setTimeout(
+                      resolve,
+                      ms
+                    );
+                  }
+                );
+              }
+
+
+              /*
+               * Espera por dois ciclos completos de layout/render.
+               *
+               * É importante antes de medir imagens.
+               */
+              function waitForTwoFrames() {
+                return new Promise(
+                  function (resolve) {
+                    requestAnimationFrame(
+                      function () {
+                        requestAnimationFrame(
+                          resolve
+                        );
+                      }
+                    );
+                  }
+                );
+              }
+
+
+              /*
+               * Mostra apenas o #print-only.
+               *
+               * Os elementos irmãos são escondidos para que
+               * não interfiram no PDF.
                */
               function isolateElement(root) {
+
                 var node = root;
 
-                while (node && node !== document.body) {
+                while (
+                  node &&
+                  node !== document.body
+                ) {
+
                   if (
-                    window.getComputedStyle(node).display === 'none'
+                    window
+                      .getComputedStyle(node)
+                      .display === 'none'
                   ) {
                     node.style.setProperty(
                       'display',
@@ -370,11 +538,13 @@ module.exports = async (req, res) => {
                     );
                   }
 
+
                   node.style.setProperty(
                     'visibility',
                     'visible',
                     'important'
                   );
+
 
                   node.style.setProperty(
                     'opacity',
@@ -382,310 +552,216 @@ module.exports = async (req, res) => {
                     'important'
                   );
 
+
                   node.style.setProperty(
                     'overflow',
                     'visible',
                     'important'
                   );
 
-                  var parent = node.parentElement;
+
+                  var parent =
+                    node.parentElement;
+
 
                   if (!parent) {
                     break;
                   }
 
+
                   Array.prototype.forEach.call(
                     parent.children,
+
                     function (sibling) {
-                      if (sibling !== node) {
+
+                      if (
+                        sibling !== node
+                      ) {
+
                         sibling.style.setProperty(
                           'display',
                           'none',
                           'important'
                         );
+
                       }
+
                     }
                   );
+
 
                   node = parent;
                 }
               }
 
+
               /*
-               * Força o carregamento de imagens lazy-loaded.
+               * FORÇAR CARREGAMENTO DE IMAGENS LAZY
                */
               function hydrateImage(img) {
+
                 img.loading = 'eager';
+
 
                 if (
                   !img.getAttribute('src') &&
                   img.dataset.src
                 ) {
-                  img.src = img.dataset.src;
+
+                  img.src =
+                    img.dataset.src;
+
                 }
+
 
                 if (
                   !img.getAttribute('src') &&
                   img.dataset.lazySrc
                 ) {
-                  img.src = img.dataset.lazySrc;
+
+                  img.src =
+                    img.dataset.lazySrc;
+
                 }
+
 
                 if (
                   !img.getAttribute('srcset') &&
                   img.dataset.srcset
                 ) {
-                  img.srcset = img.dataset.srcset;
+
+                  img.srcset =
+                    img.dataset.srcset;
+
                 }
+
 
                 if (
                   !img.getAttribute('srcset') &&
                   img.dataset.lazySrcset
                 ) {
-                  img.srcset = img.dataset.lazySrcset;
+
+                  img.srcset =
+                    img.dataset.lazySrcset;
+
                 }
+
               }
 
-              function isHeading(element) {
-                return (
-                  !!element &&
-                  /^H[1-6]$/.test(element.tagName)
-                );
-              }
 
               /*
-               * Determina se um elemento está efetivamente vazio.
+               * Verifica se é uma tag H1-H6.
+               */
+              function isHeading(element) {
+
+                return (
+                  !!element &&
+                  /^H[1-6]$/.test(
+                    element.tagName
+                  )
+                );
+
+              }
+
+
+              /*
+               * Identifica elementos visualmente vazios.
                */
               function isEmptyPrintElement(element) {
+
                 if (!element) {
                   return true;
                 }
 
+
                 /*
-                 * Estes elementos contam sempre como conteúdo,
-                 * mesmo que não tenham texto.
+                 * Estes elementos contam sempre como conteúdo.
                  */
                 if (
                   element.matches(
                     'img, picture, figure, video, iframe, svg, table, ul, ol, blockquote'
                   )
                 ) {
+
                   return false;
+
                 }
 
+
                 /*
-                 * Se existir algum destes elementos dentro do elemento
-                 * atual, também não o consideramos vazio.
+                 * Se contiverem media ou estruturas relevantes
+                 * também não são vazios.
                  */
                 if (
                   element.querySelector(
                     'img, picture, figure, video, iframe, svg, table, ul, ol, blockquote'
                   )
                 ) {
+
                   return false;
+
                 }
+
 
                 return (
                   element.textContent
                     .replace(
-                      /[\\s\\u200B\\u200C\\u200D\\uFEFF]/g,
+                      /[\\\\s\\\\u200B\\\\u200C\\\\u200D\\\\uFEFF]/g,
                       ''
                     ) === ''
                 );
+
               }
 
-              function isVisiblePrintElement(element) {
+
+              /*
+               * Verifica se um elemento participa
+               * visualmente no layout.
+               */
+              function isVisiblePrintElement(
+                element
+              ) {
+
                 if (!element) {
                   return false;
                 }
 
+
                 var style =
-                  window.getComputedStyle(element);
+                  window.getComputedStyle(
+                    element
+                  );
+
 
                 return (
                   style.display !== 'none' &&
                   style.visibility !== 'hidden'
                 );
+
               }
+
 
               /*
                * Blocos que representam conteúdo real.
                */
-              function isContentBlock(element) {
+              function isContentBlock(
+                element
+              ) {
+
                 return (
                   !!element &&
                   element.matches(
                     'p, ul, ol, figure, table, blockquote, pre, dl'
                   )
                 );
+
               }
 
-              /*
-               * Constrói uma sequência lógica do conteúdo.
-               *
-               * O objetivo é ignorar DIVs estruturais.
-               *
-               * Por exemplo:
-               *
-               * <div class="section-header-wrapper">
-               *   <h3>Título</h3>
-               * </div>
-               *
-               * <div class="conteudo-geral-wrapper">
-               *   <div class="w-richtext">
-               *     <ul>...</ul>
-               *   </div>
-               * </div>
-               *
-               * passa a ser interpretado simplesmente como:
-               *
-               * H3
-               * UL
-               */
-              function collectPrintBlocks(
-                container,
-                output
-              ) {
-                Array.prototype.forEach.call(
-                  container.children,
-                  function (child) {
-                    if (!isVisiblePrintElement(child)) {
-                      return;
-                    }
-
-                    /*
-                     * Se for heading ou conteúdo real, adicionamo-lo
-                     * à sequência e não descemos mais.
-                     */
-                    if (
-                      isHeading(child) ||
-                      isContentBlock(child)
-                    ) {
-                      output.push(child);
-                      return;
-                    }
-
-                    /*
-                     * Se for apenas um wrapper, descemos para os filhos.
-                     */
-                    if (child.children.length) {
-                      collectPrintBlocks(
-                        child,
-                        output
-                      );
-
-                      return;
-                    }
-
-                    /*
-                     * Um elemento textual não vazio também pode funcionar
-                     * como primeiro conteúdo.
-                     */
-                    if (!isEmptyPrintElement(child)) {
-                      output.push(child);
-                    }
-                  }
-                );
-              }
 
               /*
-               * Procura o primeiro ancestral comum de dois elementos.
-               */
-              function getCommonAncestor(
-                first,
-                second
-              ) {
-                var ancestors = [];
-                var node = first;
-
-                while (node) {
-                  ancestors.push(node);
-                  node = node.parentElement;
-                }
-
-                node = second;
-
-                while (node) {
-                  if (
-                    ancestors.indexOf(node) !== -1
-                  ) {
-                    return node;
-                  }
-
-                  node = node.parentElement;
-                }
-
-                return null;
-              }
-
-              /*
-               * Verifica se um elemento está fisicamente entre dois
-               * elementos no DOM.
-               */
-              function isBetweenElements(
-                element,
-                first,
-                second
-              ) {
-                if (
-                  !element ||
-                  element === first ||
-                  element === second
-                ) {
-                  return false;
-                }
-
-                return (
-                  !!(
-                    first.compareDocumentPosition(
-                      element
-                    ) &
-                    Node.DOCUMENT_POSITION_FOLLOWING
-                  ) &&
-                  !!(
-                    element.compareDocumentPosition(
-                      second
-                    ) &
-                    Node.DOCUMENT_POSITION_FOLLOWING
-                  )
-                );
-              }
-
-              /*
-               * Elementos vazios existentes entre heading e conteúdo
-               * recebem proteção contra quebra.
-               */
-              function markEmptyBridgeElements(
-                common,
-                first,
-                second
-              ) {
-                if (!common) {
-                  return;
-                }
-
-                Array.prototype.forEach.call(
-                  common.querySelectorAll('*'),
-                  function (element) {
-                    if (
-                      isBetweenElements(
-                        element,
-                        first,
-                        second
-                      ) &&
-                      isEmptyPrintElement(element)
-                    ) {
-                      element.classList.add(
-                        'pdf-keep-bridge'
-                      );
-                    }
-                  }
-                );
-              }
-
-              /*
-               * Liga dois elementos impedindo uma quebra entre eles,
-               * mesmo quando pertencem a wrappers diferentes.
+               * CONSTRUIR UMA SEQUÊNCIA LÓGICA DO CONTEÚDO
+               *
+               * Os DIVs estruturais são ignorados.
                *
                * Exemplo:
                *
@@ -696,140 +772,547 @@ module.exports = async (req, res) => {
                *   DIV
                *     UL
                *
-               * As classes de keep são propagadas desde H3 e UL
-               * até ao ancestral comum.
+               * passa a:
+               *
+               * H3
+               * UL
+               */
+              function collectPrintBlocks(
+                container,
+                output
+              ) {
+
+                Array.prototype.forEach.call(
+                  container.children,
+
+                  function (child) {
+
+                    if (
+                      !isVisiblePrintElement(
+                        child
+                      )
+                    ) {
+
+                      return;
+
+                    }
+
+
+                    if (
+                      isHeading(child) ||
+                      isContentBlock(child)
+                    ) {
+
+                      output.push(
+                        child
+                      );
+
+                      return;
+
+                    }
+
+
+                    /*
+                     * É apenas um wrapper:
+                     * continuar a descer.
+                     */
+                    if (
+                      child.children.length
+                    ) {
+
+                      collectPrintBlocks(
+                        child,
+                        output
+                      );
+
+                      return;
+
+                    }
+
+
+                    /*
+                     * Elemento textual não vazio.
+                     */
+                    if (
+                      !isEmptyPrintElement(
+                        child
+                      )
+                    ) {
+
+                      output.push(
+                        child
+                      );
+
+                    }
+
+                  }
+                );
+
+              }
+
+
+              /*
+               * Primeiro ancestral comum
+               * entre dois elementos.
+               */
+              function getCommonAncestor(
+                first,
+                second
+              ) {
+
+                var ancestors = [];
+
+                var node =
+                  first;
+
+
+                while (node) {
+
+                  ancestors.push(
+                    node
+                  );
+
+                  node =
+                    node.parentElement;
+
+                }
+
+
+                node =
+                  second;
+
+
+                while (node) {
+
+                  if (
+                    ancestors.indexOf(
+                      node
+                    ) !== -1
+                  ) {
+
+                    return node;
+
+                  }
+
+
+                  node =
+                    node.parentElement;
+
+                }
+
+
+                return null;
+              }
+
+
+              /*
+               * Determina se um elemento se encontra
+               * fisicamente entre outros dois no DOM.
+               */
+              function isBetweenElements(
+                element,
+                first,
+                second
+              ) {
+
+                if (
+                  !element ||
+                  element === first ||
+                  element === second
+                ) {
+
+                  return false;
+
+                }
+
+
+                return (
+
+                  !!(
+                    first.compareDocumentPosition(
+                      element
+                    ) &
+                    Node.DOCUMENT_POSITION_FOLLOWING
+                  )
+
+                  &&
+
+                  !!(
+                    element.compareDocumentPosition(
+                      second
+                    ) &
+                    Node.DOCUMENT_POSITION_FOLLOWING
+                  )
+
+                );
+
+              }
+
+
+              /*
+               * Elementos vazios entre heading
+               * e conteúdo não podem introduzir
+               * uma quebra.
+               */
+              function markEmptyBridgeElements(
+                common,
+                first,
+                second
+              ) {
+
+                if (!common) {
+                  return;
+                }
+
+
+                Array.prototype.forEach.call(
+                  common.querySelectorAll('*'),
+
+                  function (element) {
+
+                    if (
+                      isBetweenElements(
+                        element,
+                        first,
+                        second
+                      ) &&
+                      isEmptyPrintElement(
+                        element
+                      )
+                    ) {
+
+                      element.classList.add(
+                        'pdf-keep-bridge'
+                      );
+
+                    }
+
+                  }
+                );
+
+              }
+
+
+              /*
+               * LIGA DOIS ELEMENTOS ATRAVÉS DOS WRAPPERS
+               *
+               * Isto é fundamental porque o heading pode estar
+               * dentro de um DIV e o conteúdo dentro de outro DIV.
                */
               function linkElementsWithoutPageBreak(
                 first,
                 second
               ) {
+
                 var common =
                   getCommonAncestor(
                     first,
                     second
                   );
 
+
                 var node;
+
 
                 if (!common) {
                   return;
                 }
 
+
                 /*
-                 * Caminho do primeiro elemento até ao ancestral comum:
-                 * impedir quebra DEPOIS.
+                 * Do primeiro elemento para cima:
+                 * impedir quebra depois.
                  */
                 node = first;
+
 
                 while (
                   node &&
                   node !== common
                 ) {
+
                   node.classList.add(
                     'pdf-keep-after'
                   );
 
-                  node = node.parentElement;
+                  node =
+                    node.parentElement;
+
                 }
 
+
                 /*
-                 * Caminho do segundo elemento até ao ancestral comum:
-                 * impedir quebra ANTES.
+                 * Do segundo elemento para cima:
+                 * impedir quebra antes.
                  */
                 node = second;
+
 
                 while (
                   node &&
                   node !== common
                 ) {
+
                   node.classList.add(
                     'pdf-keep-before'
                   );
 
-                  node = node.parentElement;
+                  node =
+                    node.parentElement;
+
                 }
+
 
                 markEmptyBridgeElements(
                   common,
                   first,
                   second
                 );
+
               }
 
+
               /*
-               * Obtém o primeiro LI de uma lista.
+               * Primeiro LI de uma lista.
                */
-              function getFirstListItem(list) {
+              function getFirstListItem(
+                list
+              ) {
+
                 var children =
                   Array.prototype.slice.call(
                     list.children
                   );
+
 
                 for (
                   var index = 0;
                   index < children.length;
                   index += 1
                 ) {
+
                   if (
                     children[index].tagName === 'LI'
                   ) {
+
                     return children[index];
+
                   }
+
                 }
+
 
                 return null;
               }
 
+
               /*
-               * Percorre todos os blocos lógicos e protege:
+               * =====================================================
+               * CORREÇÃO DAS IMAGENS EM PICTURE
+               * =====================================================
                *
-               * H3 + conteúdo
+               * Algumas imagens recebem o max-width diretamente
+               * no elemento picture através do Webflow.
                *
-               * ou:
+               * No layout normal estão corretas.
                *
-               * H3 + H4 + conteúdo
+               * Durante a impressão o Chromium pode recalcular
+               * o IMG a partir do seu tamanho intrínseco e fazê-lo
+               * crescer.
                *
-               * ou:
+               * Para evitar isso:
                *
-               * H3 + H4 + H5 + conteúdo
+               * 1. Esperamos que imagens e fontes carreguem.
+               * 2. Medimos a largura visual correta do IMG.
+               * 3. Fixamos exatamente essa largura no picture.
+               * 4. Fixamos exatamente essa largura no IMG.
                *
-               * etc.
-               *
-               * Quando o primeiro conteúdo é uma figure, guardamos
-               * também qual foi o primeiro heading da cadeia.
+               * Não alteramos a altura.
                */
-              function protectHeadingGroups(root) {
+              function preservePictureImageSizes(
+                root
+              ) {
+
+                Array.prototype.forEach.call(
+                  root.querySelectorAll(
+                    'picture'
+                  ),
+
+                  function (picture) {
+
+                    var image =
+                      picture.querySelector(
+                        'img'
+                      );
+
+
+                    if (!image) {
+                      return;
+                    }
+
+
+                    /*
+                     * Esta é a dimensão correta que já
+                     * está visualmente renderizada.
+                     */
+                    var imageRect =
+                      image.getBoundingClientRect();
+
+
+                    if (
+                      !imageRect.width ||
+                      !isFinite(
+                        imageRect.width
+                      )
+                    ) {
+
+                      return;
+
+                    }
+
+
+                    var renderedWidth =
+                      imageRect.width;
+
+
+                    var pictureStyle =
+                      window.getComputedStyle(
+                        picture
+                      );
+
+
+                    /*
+                     * O picture por defeito pode comportar-se
+                     * como inline.
+                     *
+                     * Nesse caso o max-width pode não produzir
+                     * uma caixa física consistente em print.
+                     *
+                     * inline-block mantém-no no fluxo mas
+                     * permite definir uma largura real.
+                     */
+                    if (
+                      pictureStyle.display === 'inline' ||
+                      pictureStyle.display === 'contents'
+                    ) {
+
+                      picture.style.setProperty(
+                        'display',
+                        'inline-block',
+                        'important'
+                      );
+
+                    }
+
+
+                    picture.classList.add(
+                      'pdf-picture-size-locked'
+                    );
+
+
+                    /*
+                     * Bloquear a largura do PICTURE.
+                     */
+                    picture.style.setProperty(
+                      'width',
+                      renderedWidth + 'px',
+                      'important'
+                    );
+
+
+                    picture.style.setProperty(
+                      'max-width',
+                      renderedWidth + 'px',
+                      'important'
+                    );
+
+
+                    /*
+                     * Bloquear também a largura do IMG.
+                     *
+                     * Não definimos height.
+                     *
+                     * Assim continuamos a respeitar eventuais
+                     * alturas específicas existentes no Webflow.
+                     */
+                    image.style.setProperty(
+                      'width',
+                      renderedWidth + 'px',
+                      'important'
+                    );
+
+
+                    image.style.setProperty(
+                      'max-width',
+                      renderedWidth + 'px',
+                      'important'
+                    );
+
+                  }
+                );
+
+              }
+
+
+              /*
+               * =====================================================
+               * PROTEÇÃO DE HEADINGS + CONTEÚDO
+               * =====================================================
+               */
+              function protectHeadingGroups(
+                root
+              ) {
+
                 var blocks = [];
+
                 var figureHeadingMap =
                   new Map();
+
 
                 collectPrintBlocks(
                   root,
                   blocks
                 );
 
+
                 for (
                   var index = 0;
                   index < blocks.length;
                   index += 1
                 ) {
+
                   if (
-                    !isHeading(blocks[index])
+                    !isHeading(
+                      blocks[index]
+                    )
                   ) {
+
                     continue;
+
                   }
 
+
+                  /*
+                   * Primeiro heading da cadeia.
+                   */
                   var firstHeading =
                     blocks[index];
+
 
                   var lastHeading =
                     firstHeading;
 
+
                   var cursor =
                     index;
 
+
                   /*
-                   * Agrupar todos os headings consecutivos.
+                   * Agrupar headings consecutivos:
+                   *
+                   * H3
+                   * H4
+                   * H5
                    */
                   while (
                     cursor + 1 < blocks.length &&
@@ -837,58 +1320,79 @@ module.exports = async (req, res) => {
                       blocks[cursor + 1]
                     )
                   ) {
+
                     linkElementsWithoutPageBreak(
                       lastHeading,
                       blocks[cursor + 1]
                     );
 
+
                     cursor += 1;
+
 
                     lastHeading =
                       blocks[cursor];
+
                   }
 
+
                   /*
-                   * Primeiro bloco de conteúdo depois da cadeia
-                   * de headings.
+                   * Primeiro conteúdo depois dos headings.
                    */
                   var firstContent =
                     blocks[cursor + 1];
 
+
                   if (firstContent) {
+
                     linkElementsWithoutPageBreak(
                       lastHeading,
                       firstContent
                     );
 
+
                     /*
                      * LISTAS
                      *
-                     * O primeiro LI não pode ser separado da cadeia
-                     * de headings.
+                     * Garantir que pelo menos o primeiro LI
+                     * cabe juntamente com os headings.
                      */
                     if (
                       firstContent.matches(
                         'ul, ol'
                       )
                     ) {
+
                       var firstListItem =
                         getFirstListItem(
                           firstContent
                         );
 
-                      if (firstListItem) {
+
+                      if (
+                        firstListItem
+                      ) {
+
                         firstListItem.classList.add(
                           'pdf-first-list-item'
                         );
+
                       }
+
                     }
+
 
                     /*
                      * FIGURES
                      *
-                     * Guardamos o primeiro heading da cadeia para depois
-                     * calcular se heading(s) + figure cabem numa página.
+                     * Guardamos o primeiro heading da cadeia
+                     * para posteriormente medir:
+                     *
+                     * heading(s)
+                     * +
+                     * figure
+                     * +
+                     * figcaption
                      */
                     if (
                       firstContent.matches(
@@ -898,26 +1402,40 @@ module.exports = async (req, res) => {
                         '.w-richtext'
                       )
                     ) {
+
                       figureHeadingMap.set(
                         firstContent,
                         firstHeading
                       );
+
                     }
+
                   }
 
-                  index = cursor;
+
+                  index =
+                    cursor;
+
                 }
+
 
                 return figureHeadingMap;
               }
 
+
               /*
-               * Converte uma medida física em mm para CSS pixels
-               * no browser usado pela PDFShift.
+               * Converte milímetros físicos em pixels CSS
+               * no Chromium utilizado pela PDFShift.
                */
-              function millimetresToPixels(mm) {
+              function millimetresToPixels(
+                mm
+              ) {
+
                 var probe =
-                  document.createElement('div');
+                  document.createElement(
+                    'div'
+                  );
+
 
                 probe.style.setProperty(
                   'position',
@@ -925,11 +1443,13 @@ module.exports = async (req, res) => {
                   'important'
                 );
 
+
                 probe.style.setProperty(
                   'visibility',
                   'hidden',
                   'important'
                 );
+
 
                 probe.style.setProperty(
                   'pointer-events',
@@ -937,11 +1457,13 @@ module.exports = async (req, res) => {
                   'important'
                 );
 
+
                 probe.style.setProperty(
                   'width',
                   '0',
                   'important'
                 );
+
 
                 probe.style.setProperty(
                   'height',
@@ -949,11 +1471,13 @@ module.exports = async (req, res) => {
                   'important'
                 );
 
+
                 probe.style.setProperty(
                   'margin',
                   '0',
                   'important'
                 );
+
 
                 probe.style.setProperty(
                   'padding',
@@ -961,104 +1485,133 @@ module.exports = async (req, res) => {
                   'important'
                 );
 
+
                 probe.style.setProperty(
                   'border',
                   '0',
                   'important'
                 );
 
+
                 document.body.appendChild(
                   probe
                 );
 
+
                 var pixels =
-                  probe.getBoundingClientRect()
+                  probe
+                    .getBoundingClientRect()
                     .height;
 
+
                 probe.remove();
+
 
                 return pixels;
               }
 
+
               /*
-               * Redimensionamento de figures demasiado altas.
+               * =====================================================
+               * REDIMENSIONAR FIGURES DEMASIADO GRANDES
+               * =====================================================
                *
                * A4:
-               * 297mm de altura
                *
-               * Margens PDFShift:
-               * 10mm superior
-               * 10mm inferior
+               * 297mm altura total
                *
-               * Altura útil:
-               * 277mm
+               * - 10mm margem superior
+               * - 10mm margem inferior
                *
-               * Reservamos ainda 2mm de segurança.
+               * = 277mm área útil.
+               *
+               * Reservamos 2mm adicionais como segurança.
                */
               function fitRichTextFiguresToPage(
                 root,
                 figureHeadingMap
               ) {
+
                 var pageHeight =
-                  millimetresToPixels(277);
+                  millimetresToPixels(
+                    277
+                  );
+
 
                 var safety =
-                  millimetresToPixels(2);
+                  millimetresToPixels(
+                    2
+                  );
+
 
                 var usableHeight =
-                  pageHeight - safety;
+                  pageHeight -
+                  safety;
+
 
                 Array.prototype.forEach.call(
                   root.querySelectorAll(
                     '.w-richtext figure'
                   ),
+
                   function (figure) {
+
                     /*
-                     * Figure inteira fica protegida de quebra.
+                     * Figure inteira = unidade indivisível.
                      */
                     figure.classList.add(
                       'pdf-atomic-figure'
                     );
 
+
                     var image =
-                      figure.querySelector('img');
+                      figure.querySelector(
+                        'img'
+                      );
+
 
                     if (!image) {
                       return;
                     }
 
+
                     /*
-                     * Se a figure vier imediatamente depois de headings,
-                     * medimos desde o primeiro heading.
-                     *
-                     * Caso contrário medimos apenas a figure.
+                     * Caso a figure pertença a uma cadeia
+                     * de headings, começar a medir no heading.
                      */
                     var groupStart =
                       figureHeadingMap.get(
                         figure
                       ) || figure;
 
+
                     var startRect =
                       groupStart
                         .getBoundingClientRect();
+
 
                     var figureRect =
                       figure
                         .getBoundingClientRect();
 
+
                     var imageRect =
                       image
                         .getBoundingClientRect();
+
 
                     if (
                       !imageRect.height ||
                       !figureRect.height
                     ) {
+
                       return;
+
                     }
 
+
                     /*
-                     * Altura de:
+                     * Altura total:
                      *
                      * heading(s)
                      * +
@@ -1066,27 +1619,33 @@ module.exports = async (req, res) => {
                      * +
                      * figure
                      * +
-                     * figcaption
+                     * legenda
                      */
                     var groupHeight =
                       figureRect.bottom -
                       startRect.top;
 
+
                     /*
-                     * Já cabe numa página:
-                     * não alterar nada.
+                     * Já cabe na página.
+                     *
+                     * Não mexer na imagem.
                      */
                     if (
                       groupHeight <=
                       usableHeight
                     ) {
+
                       return;
+
                     }
 
+
                     /*
-                     * Tudo o que não é imagem:
+                     * Tudo exceto a imagem:
                      *
-                     * headings
+                     * heading
+                     * subtítulos
                      * margens
                      * padding
                      * figcaption
@@ -1096,35 +1655,42 @@ module.exports = async (req, res) => {
                       groupHeight -
                       imageRect.height;
 
+
                     /*
-                     * Espaço máximo que resta para a imagem.
+                     * Altura máxima restante
+                     * para a imagem.
                      */
                     var targetImageHeight =
                       usableHeight -
                       nonImageHeight;
 
+
                     /*
                      * Caso extremo:
-                     * mesmo sem a imagem o conjunto já é demasiado alto.
+                     * nem removendo a imagem o grupo cabe.
                      */
                     if (
                       targetImageHeight <= 0
                     ) {
+
                       console.warn(
                         'Figure demasiado alta mesmo sem a imagem:',
                         figure
                       );
 
+
                       return;
                     }
 
+
                     /*
-                     * Só reduzimos se for realmente necessário.
+                     * Reduzir SOMENTE quando necessário.
                      */
                     if (
                       targetImageHeight <
                       imageRect.height
                     ) {
+
                       image.style.setProperty(
                         'max-height',
                         targetImageHeight +
@@ -1132,15 +1698,17 @@ module.exports = async (req, res) => {
                         'important'
                       );
 
+
                       image.style.setProperty(
                         'height',
                         'auto',
                         'important'
                       );
 
+
                       /*
-                       * width:auto é importante para manter a proporção
-                       * quando a limitação passa a ser vertical.
+                       * Quando a altura passa a ser a limitação,
+                       * deixar a largura adaptar-se proporcionalmente.
                        */
                       image.style.setProperty(
                         'width',
@@ -1148,14 +1716,16 @@ module.exports = async (req, res) => {
                         'important'
                       );
 
+
                       image.style.setProperty(
                         'max-width',
                         '100%',
                         'important'
                       );
 
+
                       /*
-                       * Quando encolhe, centrar horizontalmente.
+                       * Centrar horizontalmente.
                        */
                       image.style.setProperty(
                         'margin-left',
@@ -1163,127 +1733,206 @@ module.exports = async (req, res) => {
                         'important'
                       );
 
+
                       image.style.setProperty(
                         'margin-right',
                         'auto',
                         'important'
                       );
+
                     }
+
                   }
                 );
+
               }
 
+
               /*
-               * Espera pelo carregamento efetivo de uma imagem.
+               * Esperar pelo carregamento efetivo
+               * de cada imagem.
                */
-              function waitForImage(img) {
-                hydrateImage(img);
+              function waitForImage(
+                img
+              ) {
 
-                var src = (
-                  img.getAttribute('src') || ''
-                ).trim();
+                hydrateImage(
+                  img
+                );
 
-                var srcset = (
-                  img.getAttribute('srcset') || ''
-                ).trim();
+
+                var src =
+                  (
+                    img.getAttribute(
+                      'src'
+                    ) || ''
+                  ).trim();
+
+
+                var srcset =
+                  (
+                    img.getAttribute(
+                      'srcset'
+                    ) || ''
+                  ).trim();
+
 
                 /*
-                 * Imagem sem qualquer origem válida.
+                 * Imagem sem origem válida.
                  */
-                if (!src && !srcset) {
+                if (
+                  !src &&
+                  !srcset
+                ) {
+
                   img.remove();
+
                   return Promise.resolve();
+
                 }
+
 
                 return new Promise(
                   function (resolve) {
-                    var finished = false;
 
-                    function finish(success) {
+                    var finished =
+                      false;
+
+
+                    function finish(
+                      success
+                    ) {
+
                       if (finished) {
                         return;
                       }
 
-                      finished = true;
-                      clearTimeout(timer);
+
+                      finished =
+                        true;
+
+
+                      clearTimeout(
+                        timer
+                      );
+
 
                       if (!success) {
+
                         console.error(
                           'Imagem removida por falha de carregamento:',
                           img.currentSrc ||
                             img.src
                         );
 
+
                         img.remove();
+
                       }
 
+
                       resolve();
+
                     }
 
+
                     /*
-                     * Timeout máximo por imagem.
+                     * Timeout máximo de 15 segundos.
                      */
                     var timer =
                       setTimeout(
                         function () {
+
                           finish(
                             img.complete &&
                             img.naturalWidth > 0
                           );
+
                         },
                         15000
                       );
 
+
                     /*
-                     * Se já estiver carregada.
+                     * Já está carregada.
                      */
-                    if (img.complete) {
+                    if (
+                      img.complete
+                    ) {
+
                       finish(
                         img.naturalWidth > 0
                       );
 
+
                       return;
+
                     }
+
 
                     img.addEventListener(
                       'load',
+
                       function () {
+
                         finish(
                           img.naturalWidth > 0
                         );
+
                       },
+
                       {
                         once: true
                       }
                     );
+
 
                     img.addEventListener(
                       'error',
+
                       function () {
-                        finish(false);
+
+                        finish(
+                          false
+                        );
+
                       },
+
                       {
                         once: true
                       }
                     );
+
                   }
                 );
+
               }
 
+
+              /*
+               * =====================================================
+               * PREPARAÇÃO FINAL DO PDF
+               * =====================================================
+               */
               async function preparePdf() {
+
                 var root =
                   document.getElementById(
                     'print-only'
                   );
 
+
                 if (!root) {
+
                   throw new Error(
                     'Elemento #print-only não encontrado.'
                   );
+
                 }
 
+
                 /*
-                 * Tornar a versão de impressão visível.
+                 * Garantir visibilidade.
                  */
                 root.style.setProperty(
                   'display',
@@ -1291,11 +1940,13 @@ module.exports = async (req, res) => {
                   'important'
                 );
 
+
                 root.style.setProperty(
                   'visibility',
                   'visible',
                   'important'
                 );
+
 
                 root.style.setProperty(
                   'opacity',
@@ -1303,11 +1954,13 @@ module.exports = async (req, res) => {
                   'important'
                 );
 
+
                 root.style.setProperty(
                   'height',
                   'auto',
                   'important'
                 );
+
 
                 root.style.setProperty(
                   'overflow',
@@ -1315,34 +1968,50 @@ module.exports = async (req, res) => {
                   'important'
                 );
 
-                isolateElement(root);
 
                 /*
-                 * Resolver <source data-srcset>.
+                 * Isolar a secção de impressão.
+                 */
+                isolateElement(
+                  root
+                );
+
+
+                /*
+                 * Resolver sources lazy-loaded
+                 * existentes dentro de picture.
                  */
                 Array.prototype.forEach.call(
                   root.querySelectorAll(
                     'source[data-srcset]'
                   ),
+
                   function (source) {
+
                     source.srcset =
                       source.dataset.srcset;
+
                   }
                 );
 
+
                 /*
-                 * Descer temporariamente ao final da página para ajudar
-                 * Webflow/browser a disparar elementos lazy-loaded.
+                 * Fazer scroll até ao fim para ajudar
+                 * Webflow/browser a carregar recursos lazy.
                  */
                 window.scrollTo(
                   0,
                   document.body.scrollHeight
                 );
 
-                await delay(100);
+
+                await delay(
+                  100
+                );
+
 
                 /*
-                 * Esperar pelas imagens.
+                 * Esperar por TODAS as imagens.
                  */
                 var images =
                   Array.prototype.slice.call(
@@ -1351,11 +2020,13 @@ module.exports = async (req, res) => {
                     )
                   );
 
+
                 await Promise.all(
                   images.map(
                     waitForImage
                   )
                 );
+
 
                 /*
                  * Esperar pelas fontes.
@@ -1364,98 +2035,136 @@ module.exports = async (req, res) => {
                   document.fonts &&
                   document.fonts.ready
                 ) {
+
                   await Promise.race([
                     document.fonts.ready,
                     delay(5000)
                   ]);
+
                 }
 
+
                 /*
-                 * Primeiro:
+                 * IMPORTANTE
                  *
-                 * identificar headings, subtítulos e respetivo
-                 * primeiro conteúdo, ignorando os wrappers.
+                 * Esperar o layout estabilizar antes
+                 * de medir as imagens dentro de picture.
+                 */
+                await waitForTwoFrames();
+
+
+                /*
+                 * =================================================
+                 * CORREÇÃO DO TAMANHO DAS IMAGENS PICTURE
+                 * =================================================
+                 *
+                 * Neste momento o layout ainda representa
+                 * corretamente as dimensões definidas pelo Webflow.
+                 *
+                 * Guardamos essas dimensões antes da impressão.
+                 */
+                preservePictureImageSizes(
+                  root
+                );
+
+
+                /*
+                 * O bloqueio das dimensões pode provocar um pequeno
+                 * reflow. Esperar que termine.
+                 */
+                await waitForTwoFrames();
+
+
+                /*
+                 * =================================================
+                 * HEADINGS + CONTEÚDO
+                 * =================================================
                  */
                 var figureHeadingMap =
                   protectHeadingGroups(
                     root
                   );
 
+
                 /*
-                 * Depois:
-                 *
-                 * garantir que todas as figures cabem numa página,
-                 * reduzindo a imagem apenas quando necessário.
+                 * =================================================
+                 * FIGURES DEMASIADO ALTAS
+                 * =================================================
                  */
                 fitRichTextFiguresToPage(
                   root,
                   figureHeadingMap
                 );
 
-                /*
-                 * Esperar dois frames para o browser recalcular
-                 * dimensões e layout.
-                 */
-                await new Promise(
-                  function (resolve) {
-                    requestAnimationFrame(
-                      function () {
-                        requestAnimationFrame(
-                          resolve
-                        );
-                      }
-                    );
-                  }
-                );
 
                 /*
-                 * Segunda passagem depois do reflow.
+                 * Esperar pelo reflow.
+                 */
+                await waitForTwoFrames();
+
+
+                /*
+                 * Segunda passagem.
                  *
-                 * Isto absorve pequenas diferenças de altura causadas
-                 * pelo redimensionamento inicial da imagem.
+                 * Serve para absorver pequenas alterações
+                 * de altura provocadas pelo primeiro resize.
                  */
                 fitRichTextFiguresToPage(
                   root,
                   figureHeadingMap
                 );
 
-                await new Promise(
-                  function (resolve) {
-                    requestAnimationFrame(
-                      function () {
-                        requestAnimationFrame(
-                          resolve
-                        );
-                      }
-                    );
-                  }
-                );
-
-                window.scrollTo(0, 0);
 
                 /*
-                 * A PDFShift só começa a conversão quando esta variável
-                 * passa a true.
+                 * Esperar pelo layout final.
                  */
-                window.__pdfReady = true;
+                await waitForTwoFrames();
+
+
+                /*
+                 * Voltar ao topo.
+                 */
+                window.scrollTo(
+                  0,
+                  0
+                );
+
+
+                /*
+                 * Dar autorização à PDFShift
+                 * para gerar o PDF.
+                 */
+                window.__pdfReady =
+                  true;
+
               }
+
 
               preparePdf().catch(
                 function (error) {
-                  console.error(error);
+
+                  console.error(
+                    error
+                  );
+
                 }
               );
+
             })();
           `,
+
 
           wait_for: 'pdfReady'
         })
       }
     );
 
+
     if (!pdfResponse.ok) {
+
       const providerError =
         await pdfResponse.text();
+
 
       console.error(
         'PDFShift:',
@@ -1463,33 +2172,42 @@ module.exports = async (req, res) => {
         providerError
       );
 
+
       return sendError(
         req,
         res,
+
         pdfResponse.status === 429
           ? 429
           : 502,
+
         'O serviço de PDF não conseguiu concluir a conversão.'
       );
+
     }
+
 
     const responseType =
       pdfResponse.headers.get(
         'content-type'
       ) || '';
 
+
     if (
       !responseType.includes(
         'application/pdf'
       )
     ) {
+
       const unexpectedBody =
         await pdfResponse.text();
+
 
       console.error(
         'Resposta inesperada da PDFShift:',
         unexpectedBody
       );
+
 
       return sendError(
         req,
@@ -1497,69 +2215,101 @@ module.exports = async (req, res) => {
         502,
         'A resposta recebida não é um PDF.'
       );
+
     }
+
 
     const contentLength =
       pdfResponse.headers.get(
         'content-length'
       );
 
+
     res.setHeader(
       'Content-Type',
       'application/pdf'
     );
+
 
     res.setHeader(
       'Content-Disposition',
       `inline; filename="${filename}.pdf"`
     );
 
+
     res.setHeader(
       'Cache-Control',
       'no-store'
     );
 
+
     if (contentLength) {
+
       res.setHeader(
         'Content-Length',
         contentLength
       );
+
     }
+
 
     await new Promise(
       (resolve, reject) => {
+
         pdfResponse.body.on(
           'error',
           reject
         );
+
 
         res.on(
           'finish',
           resolve
         );
 
+
         res.on(
           'close',
           resolve
         );
 
-        pdfResponse.body.pipe(res);
+
+        pdfResponse.body.pipe(
+          res
+        );
+
       }
     );
-  } catch (error) {
-    console.error(error);
 
-    if (res.headersSent) {
-      return res.destroy(error);
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    if (
+      res.headersSent
+    ) {
+
+      return res.destroy(
+        error
+      );
+
     }
+
 
     return sendError(
       req,
       res,
-      error.statusCode || 500,
+
+      error.statusCode ||
+        500,
+
       error.statusCode
         ? error.message
         : 'Erro interno ao gerar o PDF.'
     );
+
   }
 };
