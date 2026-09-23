@@ -311,14 +311,19 @@ module.exports = async (req, res) => {
              * caso sejam demasiado altas para uma página A4.
              */
             #print-only .w-richtext figure img {
-              display: block !important;
-
-              max-width: 100% !important;
-              height: auto !important;
-
-              margin-left: auto !important;
-              margin-right: auto !important;
-            }
+display: block !important;
+ 
+max-width: 100% !important;
+width: auto !important;
+height: auto !important;
+ 
+max-height: 90mm !important;
+ 
+object-fit: contain !important;
+ 
+margin-left: auto !important;
+margin-right: auto !important;
+}
 
 
             /*
