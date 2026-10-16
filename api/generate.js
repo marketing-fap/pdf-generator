@@ -247,15 +247,7 @@ module.exports = async (req, res) => {
             }
 
 
-            /*
-             * ÁREA DE IMPRESSÃO
-             *
-             * A4 = 210mm.
-             * Margem esquerda = 10mm.
-             * Margem direita = 10mm.
-             *
-             * Largura útil = 190mm.
-             */
+
             #print-only {
               display: block !important;
               visibility: visible !important;
@@ -274,29 +266,7 @@ module.exports = async (req, res) => {
             }
 
 
-            /*
-             * IMPORTANTE
-             *
-             * Não existe uma regra global:
-             *
-             * #print-only img {
-             *   height: auto !important;
-             * }
-             *
-             * porque isso iria anular alturas e dimensões
-             * específicas definidas no Webflow.
-             */
-
-
-            /*
-             * FIGURES DENTRO DOS RICH TEXT
-             *
-             * Uma figure nunca deve ser cortada a meio.
-             *
-             * Se existir figcaption, fica automaticamente
-             * agrupado com a imagem porque pertence à figure.
-             */
-            #print-only .w-richtext figure {
+            #print-only figure {
               max-width: 100% !important;
 
               page-break-inside: avoid !important;
@@ -304,41 +274,17 @@ module.exports = async (req, res) => {
             }
 
 
-            /*
-             * Imagens inseridas em figures de Rich Text.
-             *
-             * Estas podem ser redimensionadas pelo JavaScript
-             * caso sejam demasiado altas para uma página A4.
-             */
-            #print-only .w-richtext figure img {
-display: block !important;
- 
-max-width: 100% !important;
-width: auto !important;
-height: auto !important;
- 
-max-height: 90mm !important;
- 
-object-fit: contain !important;
- 
-margin-left: auto !important;
-margin-right: auto !important;
-}
+            #print-only figure img {
+              display: block !important;
+
+              max-width: 100% !important;
+              height: auto !important;
+
+              margin-left: auto !important;
+              margin-right: auto !important;
+            }
 
 
-            /*
-             * IMAGENS DENTRO DE PICTURE
-             *
-             * Algumas imagens do Webflow recebem o max-width
-             * no elemento <picture>.
-             *
-             * No browser normal isso funciona corretamente,
-             * mas o Chromium pode recalcular o tamanho do IMG
-             * quando entra no modo de impressão.
-             *
-             * O JavaScript mede previamente a largura correta
-             * e adiciona esta classe.
-             */
             #print-only picture.pdf-picture-size-locked {
               box-sizing: border-box !important;
             }
@@ -348,12 +294,7 @@ margin-right: auto !important;
             }
 
 
-            /*
-             * HEADINGS
-             *
-             * Nenhum heading deve ficar isolado no final
-             * de uma página.
-             */
+
             #print-only h1,
             #print-only h2,
             #print-only h3,
@@ -368,11 +309,6 @@ margin-right: auto !important;
             }
 
 
-            /*
-             * Estas classes são adicionadas dinamicamente
-             * pelo JavaScript para ligar headings e conteúdos
-             * que podem estar em wrappers diferentes.
-             */
             #print-only .pdf-keep-after {
               page-break-after: avoid !important;
               break-after: avoid-page !important;
@@ -385,10 +321,6 @@ margin-right: auto !important;
             }
 
 
-            /*
-             * Elementos vazios existentes entre dois elementos
-             * ligados não devem criar uma oportunidade de quebra.
-             */
             #print-only .pdf-keep-bridge {
               page-break-before: avoid !important;
               break-before: avoid-page !important;
@@ -401,27 +333,12 @@ margin-right: auto !important;
             }
 
 
-            /*
-             * PARÁGRAFOS
-             *
-             * O parágrafo deve começar na mesma página
-             * do heading, mas pode continuar para a página seguinte.
-             */
             #print-only p.pdf-keep-before {
               orphans: 1 !important;
               widows: 1 !important;
             }
 
 
-            /*
-             * LISTAS
-             *
-             * O primeiro LI deve caber juntamente
-             * com o heading/subheading.
-             *
-             * A UL ou OL inteira pode continuar
-             * para a página seguinte.
-             */
             #print-only .pdf-first-list-item {
               page-break-before: avoid !important;
               break-before: avoid-page !important;
@@ -431,27 +348,12 @@ margin-right: auto !important;
             }
 
 
-            /*
-             * FIGURE ATÓMICA
-             *
-             * Não permitir quebra dentro de:
-             *
-             * figure
-             *   imagem
-             *   legenda
-             */
             #print-only .pdf-atomic-figure {
               page-break-inside: avoid !important;
               break-inside: avoid-page !important;
             }
 
 
-            /*
-             * WRAPPERS WEBFLOW
-             *
-             * Proteção adicional para as estruturas
-             * já existentes no site.
-             */
             #print-only .section-header-wrapper,
             #print-only .section-main-header-wrapper {
               page-break-inside: avoid !important;
@@ -481,9 +383,6 @@ margin-right: auto !important;
               };
 
 
-              /*
-               * Pequeno delay auxiliar.
-               */
               function delay(ms) {
                 return new Promise(
                   function (resolve) {
@@ -496,11 +395,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Espera por dois ciclos completos de layout/render.
-               *
-               * É importante antes de medir imagens.
-               */
               function waitForTwoFrames() {
                 return new Promise(
                   function (resolve) {
@@ -516,12 +410,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Mostra apenas o #print-only.
-               *
-               * Os elementos irmãos são escondidos para que
-               * não interfiram no PDF.
-               */
               function isolateElement(root) {
 
                 var node = root;
@@ -600,9 +488,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * FORÇAR CARREGAMENTO DE IMAGENS LAZY
-               */
               function hydrateImage(img) {
 
                 img.loading = 'eager';
@@ -654,9 +539,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Verifica se é uma tag H1-H6.
-               */
               function isHeading(element) {
 
                 return (
@@ -669,9 +551,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Identifica elementos visualmente vazios.
-               */
               function isEmptyPrintElement(element) {
 
                 if (!element) {
@@ -679,9 +558,6 @@ margin-right: auto !important;
                 }
 
 
-                /*
-                 * Estes elementos contam sempre como conteúdo.
-                 */
                 if (
                   element.matches(
                     'img, picture, figure, video, iframe, svg, table, ul, ol, blockquote'
@@ -693,10 +569,6 @@ margin-right: auto !important;
                 }
 
 
-                /*
-                 * Se contiverem media ou estruturas relevantes
-                 * também não são vazios.
-                 */
                 if (
                   element.querySelector(
                     'img, picture, figure, video, iframe, svg, table, ul, ol, blockquote'
@@ -719,10 +591,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Verifica se um elemento participa
-               * visualmente no layout.
-               */
               function isVisiblePrintElement(
                 element
               ) {
@@ -746,9 +614,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Blocos que representam conteúdo real.
-               */
               function isContentBlock(
                 element
               ) {
@@ -763,25 +628,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * CONSTRUIR UMA SEQUÊNCIA LÓGICA DO CONTEÚDO
-               *
-               * Os DIVs estruturais são ignorados.
-               *
-               * Exemplo:
-               *
-               * DIV
-               *   H3
-               *
-               * DIV
-               *   DIV
-               *     UL
-               *
-               * passa a:
-               *
-               * H3
-               * UL
-               */
               function collectPrintBlocks(
                 container,
                 output
@@ -817,10 +663,6 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * É apenas um wrapper:
-                     * continuar a descer.
-                     */
                     if (
                       child.children.length
                     ) {
@@ -835,9 +677,6 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * Elemento textual não vazio.
-                     */
                     if (
                       !isEmptyPrintElement(
                         child
@@ -856,10 +695,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Primeiro ancestral comum
-               * entre dois elementos.
-               */
               function getCommonAncestor(
                 first,
                 second
@@ -910,10 +745,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Determina se um elemento se encontra
-               * fisicamente entre outros dois no DOM.
-               */
               function isBetweenElements(
                 element,
                 first,
@@ -954,11 +785,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Elementos vazios entre heading
-               * e conteúdo não podem introduzir
-               * uma quebra.
-               */
               function markEmptyBridgeElements(
                 common,
                 first,
@@ -998,12 +824,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * LIGA DOIS ELEMENTOS ATRAVÉS DOS WRAPPERS
-               *
-               * Isto é fundamental porque o heading pode estar
-               * dentro de um DIV e o conteúdo dentro de outro DIV.
-               */
               function linkElementsWithoutPageBreak(
                 first,
                 second
@@ -1024,10 +844,6 @@ margin-right: auto !important;
                 }
 
 
-                /*
-                 * Do primeiro elemento para cima:
-                 * impedir quebra depois.
-                 */
                 node = first;
 
 
@@ -1046,10 +862,6 @@ margin-right: auto !important;
                 }
 
 
-                /*
-                 * Do segundo elemento para cima:
-                 * impedir quebra antes.
-                 */
                 node = second;
 
 
@@ -1077,9 +889,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Primeiro LI de uma lista.
-               */
               function getFirstListItem(
                 list
               ) {
@@ -1111,29 +920,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * =====================================================
-               * CORREÇÃO DAS IMAGENS EM PICTURE
-               * =====================================================
-               *
-               * Algumas imagens recebem o max-width diretamente
-               * no elemento picture através do Webflow.
-               *
-               * No layout normal estão corretas.
-               *
-               * Durante a impressão o Chromium pode recalcular
-               * o IMG a partir do seu tamanho intrínseco e fazê-lo
-               * crescer.
-               *
-               * Para evitar isso:
-               *
-               * 1. Esperamos que imagens e fontes carreguem.
-               * 2. Medimos a largura visual correta do IMG.
-               * 3. Fixamos exatamente essa largura no picture.
-               * 4. Fixamos exatamente essa largura no IMG.
-               *
-               * Não alteramos a altura.
-               */
               function preservePictureImageSizes(
                 root
               ) {
@@ -1156,10 +942,6 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * Esta é a dimensão correta que já
-                     * está visualmente renderizada.
-                     */
                     var imageRect =
                       image.getBoundingClientRect();
 
@@ -1186,16 +968,6 @@ margin-right: auto !important;
                       );
 
 
-                    /*
-                     * O picture por defeito pode comportar-se
-                     * como inline.
-                     *
-                     * Nesse caso o max-width pode não produzir
-                     * uma caixa física consistente em print.
-                     *
-                     * inline-block mantém-no no fluxo mas
-                     * permite definir uma largura real.
-                     */
                     if (
                       pictureStyle.display === 'inline' ||
                       pictureStyle.display === 'contents'
@@ -1215,9 +987,6 @@ margin-right: auto !important;
                     );
 
 
-                    /*
-                     * Bloquear a largura do PICTURE.
-                     */
                     picture.style.setProperty(
                       'width',
                       renderedWidth + 'px',
@@ -1232,14 +1001,6 @@ margin-right: auto !important;
                     );
 
 
-                    /*
-                     * Bloquear também a largura do IMG.
-                     *
-                     * Não definimos height.
-                     *
-                     * Assim continuamos a respeitar eventuais
-                     * alturas específicas existentes no Webflow.
-                     */
                     image.style.setProperty(
                       'width',
                       renderedWidth + 'px',
@@ -1259,11 +1020,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * =====================================================
-               * PROTEÇÃO DE HEADINGS + CONTEÚDO
-               * =====================================================
-               */
               function protectHeadingGroups(
                 root
               ) {
@@ -1297,9 +1053,6 @@ margin-right: auto !important;
                   }
 
 
-                  /*
-                   * Primeiro heading da cadeia.
-                   */
                   var firstHeading =
                     blocks[index];
 
@@ -1312,13 +1065,6 @@ margin-right: auto !important;
                     index;
 
 
-                  /*
-                   * Agrupar headings consecutivos:
-                   *
-                   * H3
-                   * H4
-                   * H5
-                   */
                   while (
                     cursor + 1 < blocks.length &&
                     isHeading(
@@ -1341,9 +1087,6 @@ margin-right: auto !important;
                   }
 
 
-                  /*
-                   * Primeiro conteúdo depois dos headings.
-                   */
                   var firstContent =
                     blocks[cursor + 1];
 
@@ -1356,12 +1099,6 @@ margin-right: auto !important;
                     );
 
 
-                    /*
-                     * LISTAS
-                     *
-                     * Garantir que pelo menos o primeiro LI
-                     * cabe juntamente com os headings.
-                     */
                     if (
                       firstContent.matches(
                         'ul, ol'
@@ -1387,24 +1124,9 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * FIGURES
-                     *
-                     * Guardamos o primeiro heading da cadeia
-                     * para posteriormente medir:
-                     *
-                     * heading(s)
-                     * +
-                     * figure
-                     * +
-                     * figcaption
-                     */
                     if (
                       firstContent.matches(
                         'figure'
-                      ) &&
-                      firstContent.closest(
-                        '.w-richtext'
                       )
                     ) {
 
@@ -1428,10 +1150,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Converte milímetros físicos em pixels CSS
-               * no Chromium utilizado pela PDFShift.
-               */
               function millimetresToPixels(
                 mm
               ) {
@@ -1516,23 +1234,7 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * =====================================================
-               * REDIMENSIONAR FIGURES DEMASIADO GRANDES
-               * =====================================================
-               *
-               * A4:
-               *
-               * 297mm altura total
-               *
-               * - 10mm margem superior
-               * - 10mm margem inferior
-               *
-               * = 277mm área útil.
-               *
-               * Reservamos 2mm adicionais como segurança.
-               */
-              function fitRichTextFiguresToPage(
+              function fitAllFiguresToPage(
                 root,
                 figureHeadingMap
               ) {
@@ -1556,14 +1258,11 @@ margin-right: auto !important;
 
                 Array.prototype.forEach.call(
                   root.querySelectorAll(
-                    '.w-richtext figure'
+                    'figure'
                   ),
 
                   function (figure) {
 
-                    /*
-                     * Figure inteira = unidade indivisível.
-                     */
                     figure.classList.add(
                       'pdf-atomic-figure'
                     );
@@ -1580,10 +1279,6 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * Caso a figure pertença a uma cadeia
-                     * de headings, começar a medir no heading.
-                     */
                     var groupStart =
                       figureHeadingMap.get(
                         figure
@@ -1615,27 +1310,11 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * Altura total:
-                     *
-                     * heading(s)
-                     * +
-                     * espaçamentos
-                     * +
-                     * figure
-                     * +
-                     * legenda
-                     */
                     var groupHeight =
                       figureRect.bottom -
                       startRect.top;
 
 
-                    /*
-                     * Já cabe na página.
-                     *
-                     * Não mexer na imagem.
-                     */
                     if (
                       groupHeight <=
                       usableHeight
@@ -1646,51 +1325,25 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * Tudo exceto a imagem:
-                     *
-                     * heading
-                     * subtítulos
-                     * margens
-                     * padding
-                     * figcaption
-                     * etc.
-                     */
                     var nonImageHeight =
                       groupHeight -
                       imageRect.height;
 
 
-                    /*
-                     * Altura máxima restante
-                     * para a imagem.
-                     */
                     var targetImageHeight =
                       usableHeight -
                       nonImageHeight;
 
 
-                    /*
-                     * Caso extremo:
-                     * nem removendo a imagem o grupo cabe.
-                     */
                     if (
                       targetImageHeight <= 0
                     ) {
 
-                      console.warn(
-                        'Figure demasiado alta mesmo sem a imagem:',
-                        figure
-                      );
-
-
                       return;
+
                     }
 
 
-                    /*
-                     * Reduzir SOMENTE quando necessário.
-                     */
                     if (
                       targetImageHeight <
                       imageRect.height
@@ -1711,10 +1364,6 @@ margin-right: auto !important;
                       );
 
 
-                      /*
-                       * Quando a altura passa a ser a limitação,
-                       * deixar a largura adaptar-se proporcionalmente.
-                       */
                       image.style.setProperty(
                         'width',
                         'auto',
@@ -1729,9 +1378,6 @@ margin-right: auto !important;
                       );
 
 
-                      /*
-                       * Centrar horizontalmente.
-                       */
                       image.style.setProperty(
                         'margin-left',
                         'auto',
@@ -1753,10 +1399,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * Esperar pelo carregamento efetivo
-               * de cada imagem.
-               */
               function waitForImage(
                 img
               ) {
@@ -1782,9 +1424,6 @@ margin-right: auto !important;
                   ).trim();
 
 
-                /*
-                 * Imagem sem origem válida.
-                 */
                 if (
                   !src &&
                   !srcset
@@ -1823,16 +1462,7 @@ margin-right: auto !important;
 
 
                       if (!success) {
-
-                        console.error(
-                          'Imagem removida por falha de carregamento:',
-                          img.currentSrc ||
-                            img.src
-                        );
-
-
                         img.remove();
-
                       }
 
 
@@ -1841,9 +1471,6 @@ margin-right: auto !important;
                     }
 
 
-                    /*
-                     * Timeout máximo de 15 segundos.
-                     */
                     var timer =
                       setTimeout(
                         function () {
@@ -1858,9 +1485,6 @@ margin-right: auto !important;
                       );
 
 
-                    /*
-                     * Já está carregada.
-                     */
                     if (
                       img.complete
                     ) {
@@ -1914,11 +1538,6 @@ margin-right: auto !important;
               }
 
 
-              /*
-               * =====================================================
-               * PREPARAÇÃO FINAL DO PDF
-               * =====================================================
-               */
               async function preparePdf() {
 
                 var root =
@@ -1936,9 +1555,6 @@ margin-right: auto !important;
                 }
 
 
-                /*
-                 * Garantir visibilidade.
-                 */
                 root.style.setProperty(
                   'display',
                   'block',
@@ -1974,18 +1590,11 @@ margin-right: auto !important;
                 );
 
 
-                /*
-                 * Isolar a secção de impressão.
-                 */
                 isolateElement(
                   root
                 );
 
 
-                /*
-                 * Resolver sources lazy-loaded
-                 * existentes dentro de picture.
-                 */
                 Array.prototype.forEach.call(
                   root.querySelectorAll(
                     'source[data-srcset]'
@@ -2000,10 +1609,6 @@ margin-right: auto !important;
                 );
 
 
-                /*
-                 * Fazer scroll até ao fim para ajudar
-                 * Webflow/browser a carregar recursos lazy.
-                 */
                 window.scrollTo(
                   0,
                   document.body.scrollHeight
@@ -2015,9 +1620,6 @@ margin-right: auto !important;
                 );
 
 
-                /*
-                 * Esperar por TODAS as imagens.
-                 */
                 var images =
                   Array.prototype.slice.call(
                     root.querySelectorAll(
@@ -2033,9 +1635,6 @@ margin-right: auto !important;
                 );
 
 
-                /*
-                 * Esperar pelas fontes.
-                 */
                 if (
                   document.fonts &&
                   document.fonts.ready
@@ -2049,96 +1648,47 @@ margin-right: auto !important;
                 }
 
 
-                /*
-                 * IMPORTANTE
-                 *
-                 * Esperar o layout estabilizar antes
-                 * de medir as imagens dentro de picture.
-                 */
                 await waitForTwoFrames();
 
 
-                /*
-                 * =================================================
-                 * CORREÇÃO DO TAMANHO DAS IMAGENS PICTURE
-                 * =================================================
-                 *
-                 * Neste momento o layout ainda representa
-                 * corretamente as dimensões definidas pelo Webflow.
-                 *
-                 * Guardamos essas dimensões antes da impressão.
-                 */
                 preservePictureImageSizes(
                   root
                 );
 
 
-                /*
-                 * O bloqueio das dimensões pode provocar um pequeno
-                 * reflow. Esperar que termine.
-                 */
                 await waitForTwoFrames();
 
 
-                /*
-                 * =================================================
-                 * HEADINGS + CONTEÚDO
-                 * =================================================
-                 */
                 var figureHeadingMap =
                   protectHeadingGroups(
                     root
                   );
 
 
-                /*
-                 * =================================================
-                 * FIGURES DEMASIADO ALTAS
-                 * =================================================
-                 */
-                fitRichTextFiguresToPage(
+                fitAllFiguresToPage(
                   root,
                   figureHeadingMap
                 );
 
 
-                /*
-                 * Esperar pelo reflow.
-                 */
                 await waitForTwoFrames();
 
 
-                /*
-                 * Segunda passagem.
-                 *
-                 * Serve para absorver pequenas alterações
-                 * de altura provocadas pelo primeiro resize.
-                 */
-                fitRichTextFiguresToPage(
+                fitAllFiguresToPage(
                   root,
                   figureHeadingMap
                 );
 
 
-                /*
-                 * Esperar pelo layout final.
-                 */
                 await waitForTwoFrames();
 
 
-                /*
-                 * Voltar ao topo.
-                 */
                 window.scrollTo(
                   0,
                   0
                 );
 
 
-                /*
-                 * Dar autorização à PDFShift
-                 * para gerar o PDF.
-                 */
                 window.__pdfReady =
                   true;
 
