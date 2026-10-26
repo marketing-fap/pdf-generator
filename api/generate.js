@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+	const fetch = require('node-fetch');
 
 const DEFAULT_ORIGIN =
   'https://guia-online-france-air-po-1982015d34ef0.webflow.io';
@@ -278,8 +278,10 @@ module.exports = async (req, res) => {
               display: block !important;
 
               max-width: 100% !important;
+	      max-height: 180px !important;
+              width: auto !important;
               height: auto !important;
-
+              object-fit: contain !important;
               margin-left: auto !important;
               margin-right: auto !important;
             }
